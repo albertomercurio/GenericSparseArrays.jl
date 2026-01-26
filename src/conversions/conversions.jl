@@ -174,7 +174,7 @@ function DeviceSparseMatrixCSC(A::DeviceSparseMatrixCOO{Tv,Ti}) where {Tv,Ti}
     kernel!(colptr, colind_sorted; ndrange = (nnz_count,))
 
     # Compute cumulative sum
-    allowed_setindex!(colptr, 1, 1) # TODO: Is there a better way to do this?
+    @allowscalar colptr[1] = 1 # TODO: Is there a better way to do this?
     colptr[2:end] .= _cumsum_AK(colptr[2:end]) .+ 1
 
     return DeviceSparseMatrixCSC(m, n, colptr, rowind_sorted, nzval_sorted)
@@ -232,7 +232,7 @@ function DeviceSparseMatrixCSR(A::DeviceSparseMatrixCOO{Tv,Ti}) where {Tv,Ti}
     kernel!(rowptr, rowind_sorted; ndrange = (nnz_count,))
 
     # Compute cumulative sum
-    allowed_setindex!(rowptr, 1, 1) # TODO: Is there a better way to do this?
+    @allowscalar rowptr[1] = 1 # TODO: Is there a better way to do this?
     rowptr[2:end] .= _cumsum_AK(rowptr[2:end]) .+ 1
 
     return DeviceSparseMatrixCSR(m, n, rowptr, colind_sorted, nzval_sorted)

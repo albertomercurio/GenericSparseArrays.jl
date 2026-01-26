@@ -7,7 +7,7 @@ import SparseArrays: SparseVector, SparseMatrixCSC
 import SparseArrays: getcolptr, getrowval, getnzval, nonzeroinds
 import SparseArrays: _show_with_braille_patterns
 
-import ArrayInterface: allowed_getindex, allowed_setindex!
+import GPUArraysCore: @allowscalar
 
 import KernelAbstractions
 import KernelAbstractions:
