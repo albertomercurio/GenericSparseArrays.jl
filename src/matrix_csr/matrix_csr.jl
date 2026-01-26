@@ -460,8 +460,8 @@ end
 Multiply two sparse matrices in CSR format. Both matrices must have compatible dimensions
 (number of columns of A equals number of rows of B) and be on the same backend (device).
 
-The multiplication is performed using the standard sparse matrix multiplication algorithm
-from SparseArrays.jl.
+The multiplication uses GPU-compatible kernels for efficient sparse-sparse matrix
+multiplication (SpGEMM).
 
 # Examples
 ```jldoctest
@@ -491,14 +491,68 @@ function Base.:(*)(A::DeviceSparseMatrixCSR, B::DeviceSparseMatrixCSR)
     backend_A == backend_B ||
         throw(ArgumentError("Both matrices must have the same backend"))
 
-    # Convert to SparseMatrixCSC, multiply using standard library, convert back
-    A_sparse = SparseMatrixCSC(A)
-    B_sparse = SparseMatrixCSC(B)
-    C_sparse = A_sparse * B_sparse
-    C = DeviceSparseMatrixCSR(C_sparse)
-
-    # Adapt to the same backend as A and B
-    return Adapt.adapt(backend_A, C)
+    m, k, n = size(A, 1), size(A, 2), size(B, 2)
+    Ti = eltype(getrowptr(A))
+    Tv = promote_type(eltype(nonzeros(A)), eltype(nonzeros(B)))
+    
+    backend = backend_A
+    
+    # Allocate workspace for counting (one flag per column per row of A)
+    col_seen = similar(nonzeros(A), Bool, m * n)
+    
+    # Count non-zeros per row of C
+    nnz_per_row = similar(getrowptr(A), m)
+    fill!(nnz_per_row, zero(Ti))
+    
+    kernel_count! = kernel_count_nnz_spgemm_csr!(backend)
+    kernel_count!(
+        nnz_per_row,
+        col_seen,
+        getrowptr(A),
+        getcolval(A),
+        getrowptr(B),
+        getcolval(B),
+        n;
+        ndrange = (m,),
+    )
+    
+    # Build rowptr for result matrix
+    cumsum_nnz = _cumsum_AK(nnz_per_row)
+    rowptr_C = similar(getrowptr(A), m + 1)
+    rowptr_C[2:end] .= cumsum_nnz
+    rowptr_C[2:end] .+= one(Ti)
+    rowptr_C[1:1] .= one(Ti)
+    
+    # Allocate result arrays
+    nnz_total = @allowscalar rowptr_C[m + 1] - one(Ti)
+    colval_C = similar(getcolval(A), nnz_total)
+    nzval_C = similar(nonzeros(A), Tv, nnz_total)
+    
+    # Allocate workspace for accumulation
+    col_accum = similar(nonzeros(A), Tv, m * n)
+    col_flags = similar(nonzeros(A), Bool, m * n)
+    
+    # Compute the product
+    kernel_mult! = kernel_spgemm_csr!(backend)
+    kernel_mult!(
+        colval_C,
+        nzval_C,
+        rowptr_C,
+        getrowptr(A),
+        getcolval(A),
+        nonzeros(A),
+        getrowptr(B),
+        getcolval(B),
+        nonzeros(B),
+        col_accum,
+        col_flags,
+        n,
+        Val{false}(),
+        Val{false}();
+        ndrange = (m,),
+    )
+    
+    return DeviceSparseMatrixCSR(m, n, rowptr_C, colval_C, nzval_C)
 end
 
 # Multiplication with transpose/adjoint support
@@ -526,14 +580,14 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparse
             backend_A == backend_B ||
                 throw(ArgumentError("Both matrices must have the same backend"))
 
-            # Convert to SparseMatrixCSC (handles transpose/adjoint), multiply, convert back
-            A_sparse = SparseMatrixCSC(A)
-            B_sparse = SparseMatrixCSC(B)
-            C_sparse = A_sparse * B_sparse
-            C = DeviceSparseMatrixCSR(C_sparse)
-
-            # Adapt to the same backend as A and B
-            return Adapt.adapt(backend_A, C)
+            # For transpose/adjoint, convert to CSC format (which is CSR transposed structurally)
+            # This follows the same pattern as addition with transpose/adjoint
+            A_csc = DeviceSparseMatrixCSC(A)
+            B_csc = DeviceSparseMatrixCSC(B)
+            result_csc = A_csc * B_csc
+            
+            # Convert back to CSR
+            return DeviceSparseMatrixCSR(result_csc)
         end
     end
 end

@@ -613,8 +613,8 @@ end
 Multiply two sparse matrices in COO format. Both matrices must have compatible dimensions
 (number of columns of A equals number of rows of B) and be on the same backend (device).
 
-The multiplication is performed using the standard sparse matrix multiplication algorithm
-from SparseArrays.jl.
+The multiplication converts to CSC format, performs the multiplication with GPU-compatible
+kernels, and converts back to COO format.
 
 # Examples
 ```jldoctest
@@ -644,14 +644,13 @@ function Base.:(*)(A::DeviceSparseMatrixCOO, B::DeviceSparseMatrixCOO)
     backend_A == backend_B ||
         throw(ArgumentError("Both matrices must have the same backend"))
 
-    # Convert to SparseMatrixCSC, multiply using standard library, convert back
-    A_sparse = SparseMatrixCSC(A)
-    B_sparse = SparseMatrixCSC(B)
-    C_sparse = A_sparse * B_sparse
-    C = DeviceSparseMatrixCOO(C_sparse)
-
-    # Adapt to the same backend as A and B
-    return Adapt.adapt(backend_A, C)
+    # Convert to CSC, multiply, convert back to COO
+    # This is acceptable as COO doesn't have an efficient direct multiplication algorithm
+    # and CSC provides the sorted structure needed for efficient SpGEMM
+    A_csc = DeviceSparseMatrixCSC(A)
+    B_csc = DeviceSparseMatrixCSC(B)
+    C_csc = A_csc * B_csc
+    return DeviceSparseMatrixCOO(C_csc)
 end
 
 # Multiplication with transpose/adjoint support
@@ -679,14 +678,11 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparse
             backend_A == backend_B ||
                 throw(ArgumentError("Both matrices must have the same backend"))
 
-            # Convert to SparseMatrixCSC (handles transpose/adjoint), multiply, convert back
-            A_sparse = SparseMatrixCSC(A)
-            B_sparse = SparseMatrixCSC(B)
-            C_sparse = A_sparse * B_sparse
-            C = DeviceSparseMatrixCOO(C_sparse)
-
-            # Adapt to the same backend as A and B
-            return Adapt.adapt(backend_A, C)
+            # Convert to CSC (handles transpose/adjoint), multiply, convert back to COO
+            A_csc = DeviceSparseMatrixCSC(A)
+            B_csc = DeviceSparseMatrixCSC(B)
+            C_csc = A_csc * B_csc
+            return DeviceSparseMatrixCOO(C_csc)
         end
     end
 end
