@@ -614,7 +614,8 @@ Multiply two sparse matrices in COO format. Both matrices must have compatible d
 (number of columns of A equals number of rows of B) and be on the same backend (device).
 
 The multiplication converts to CSC format, performs the multiplication with GPU-compatible
-kernels, and converts back to COO format.
+kernels, and converts back to COO format. This approach is used for all cases including
+transpose/adjoint since COO doesn't have an efficient direct multiplication algorithm.
 
 # Examples
 ```jldoctest
@@ -653,7 +654,7 @@ function Base.:(*)(A::DeviceSparseMatrixCOO, B::DeviceSparseMatrixCOO)
     return DeviceSparseMatrixCOO(C_csc)
 end
 
-# Multiplication with transpose/adjoint support
+# Multiplication with transpose/adjoint support - all cases use the same approach
 for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparseMatrixCOO)
     for (wrapb, transb, conjb, unwrapb, whereT2) in
         trans_adj_wrappers(:DeviceSparseMatrixCOO)
@@ -679,6 +680,8 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparse
                 throw(ArgumentError("Both matrices must have the same backend"))
 
             # Convert to CSC (handles transpose/adjoint), multiply, convert back to COO
+            # Same approach as the base case since COO doesn't have an efficient
+            # direct multiplication algorithm
             A_csc = DeviceSparseMatrixCSC(A)
             B_csc = DeviceSparseMatrixCSC(B)
             C_csc = A_csc * B_csc

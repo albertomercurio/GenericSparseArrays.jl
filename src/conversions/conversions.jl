@@ -180,6 +180,25 @@ function DeviceSparseMatrixCSC(A::DeviceSparseMatrixCOO{Tv,Ti}) where {Tv,Ti}
     return DeviceSparseMatrixCSC(m, n, colptr, rowind_sorted, nzval_sorted)
 end
 
+# Transpose and Adjoint conversions for COO to CSC
+DeviceSparseMatrixCSC(A::Transpose{Tv,<:DeviceSparseMatrixCOO}) where {Tv} =
+    DeviceSparseMatrixCSC(DeviceSparseMatrixCOO(
+        size(A, 1),
+        size(A, 2),
+        A.parent.colind,
+        A.parent.rowind,
+        A.parent.nzval,
+    ))
+
+DeviceSparseMatrixCSC(A::Adjoint{Tv,<:DeviceSparseMatrixCOO}) where {Tv} =
+    DeviceSparseMatrixCSC(DeviceSparseMatrixCOO(
+        size(A, 1),
+        size(A, 2),
+        A.parent.colind,
+        A.parent.rowind,
+        conj.(A.parent.nzval),
+    ))
+
 # ============================================================================
 # CSR ↔ COO Conversions
 # ============================================================================

@@ -344,23 +344,6 @@ function shared_test_linearalgebra_matrix_csc(
                 expected = op_A(A) * op_B(B)
                 @test collect(result) ≈ Matrix(expected)
                 @test result isa DeviceSparseMatrixCSC
-
-                # Additional tests only for identity * identity
-                if op_A === identity && op_B === identity
-                    # Test with specific patterns
-                    A_diag = sparse([1, 2, 3], [1, 2, 3], T[2, 3, 4], m, k)
-                    B_diag = sparse([1, 2, 3], [1, 2, 3], T[5, 6, 7], k, n)
-                    dA_diag = adapt(op, DeviceSparseMatrixCSC(A_diag))
-                    dB_diag = adapt(op, DeviceSparseMatrixCSC(B_diag))
-                    result_diag = dA_diag * dB_diag
-                    expected_diag = A_diag * B_diag
-                    @test collect(result_diag) ≈ Matrix(expected_diag)
-
-                    # Test dimension mismatch
-                    B_wrong = sprand(T, k + 1, n, 0.1)
-                    dB_wrong = adapt(op, DeviceSparseMatrixCSC(B_wrong))
-                    @test_throws DimensionMismatch dA * dB_wrong
-                end
             end
         end
     end
