@@ -277,68 +277,67 @@ function shared_test_linearalgebra_matrix_csr(
 
     @testset "Sparse + Sparse Matrix Addition" begin
         for T in (int_types..., float_types..., complex_types...)
-            m, n = 50, 40
-            A = sprand(T, m, n, 0.1)
-            B = sprand(T, m, n, 0.15)
+            for (op_A, op_B) in Iterators.product(
+                (identity, transpose, adjoint),
+                (identity, transpose, adjoint),
+            )
+                # Skip identity + identity for int types when using transpose/adjoint
+                # since we test that separately below
+                if op_A === identity && op_B === identity
+                    # Basic addition tests
+                    m, n = 50, 40
+                    A = sprand(T, m, n, 0.1)
+                    B = sprand(T, m, n, 0.15)
 
-            dA = adapt(op, DeviceSparseMatrixCSR(A))
-            dB = adapt(op, DeviceSparseMatrixCSR(B))
+                    dA = adapt(op, DeviceSparseMatrixCSR(A))
+                    dB = adapt(op, DeviceSparseMatrixCSR(B))
 
-            # Test sparse + sparse
-            result = dA + dB
-            expected = A + B
-            @test collect(result) ≈ Matrix(expected)
-            @test result isa DeviceSparseMatrixCSR
+                    # Test sparse + sparse
+                    result = dA + dB
+                    expected = A + B
+                    @test collect(result) ≈ Matrix(expected)
+                    @test result isa DeviceSparseMatrixCSR
 
-            # Test with overlapping entries
-            A_overlap = sparse([1, 2, 3], [1, 2, 3], T[1, 2, 3], m, n)
-            B_overlap = sparse([1, 2, 4], [1, 2, 4], T[4, 5, 6], m, n)
-            dA_overlap = adapt(op, DeviceSparseMatrixCSR(A_overlap))
-            dB_overlap = adapt(op, DeviceSparseMatrixCSR(B_overlap))
-            result_overlap = dA_overlap + dB_overlap
-            expected_overlap = A_overlap + B_overlap
-            @test collect(result_overlap) ≈ Matrix(expected_overlap)
+                    # Test with overlapping entries
+                    A_overlap = sparse([1, 2, 3], [1, 2, 3], T[1, 2, 3], m, n)
+                    B_overlap = sparse([1, 2, 4], [1, 2, 4], T[4, 5, 6], m, n)
+                    dA_overlap = adapt(op, DeviceSparseMatrixCSR(A_overlap))
+                    dB_overlap = adapt(op, DeviceSparseMatrixCSR(B_overlap))
+                    result_overlap = dA_overlap + dB_overlap
+                    expected_overlap = A_overlap + B_overlap
+                    @test collect(result_overlap) ≈ Matrix(expected_overlap)
 
-            # Test dimension mismatch
-            B_wrong = sprand(T, m + 1, n, 0.1)
-            dB_wrong = adapt(op, DeviceSparseMatrixCSR(B_wrong))
-            @test_throws DimensionMismatch dA + dB_wrong
-        end
-    end
-
-    @testset "Sparse + Sparse Transpose/Adjoint Addition" begin
-        for T in (float_types..., complex_types...)
-            m, n = 30, 30  # Square matrices for transpose tests
-            A = sprand(T, m, n, 0.1)
-            B = sprand(T, n, m, 0.1)  # Transpose size
-
-            dA = adapt(op, DeviceSparseMatrixCSR(A))
-            dB = adapt(op, DeviceSparseMatrixCSR(B))
-
-            # Test sparse + transpose(sparse)
-            result_trans = dA + transpose(dB)
-            expected_trans = A + transpose(B)
-            @test collect(result_trans) ≈ Matrix(expected_trans)
-
-            # Test transpose(sparse) + sparse
-            result_trans2 = transpose(dB) + dA
-            @test collect(result_trans2) ≈ Matrix(expected_trans)
-
-            # Test sparse + adjoint(sparse) for complex types
-            if T <: Complex
-                result_adj = dA + adjoint(dB)
-                expected_adj = A + adjoint(B)
-                @test collect(result_adj) ≈ Matrix(expected_adj)
-
-                # Test adjoint(sparse) + sparse
-                result_adj2 = adjoint(dB) + dA
-                @test collect(result_adj2) ≈ Matrix(expected_adj)
+                    # Test dimension mismatch
+                    B_wrong = sprand(T, m + 1, n, 0.1)
+                    dB_wrong = adapt(op, DeviceSparseMatrixCSR(B_wrong))
+                    @test_throws DimensionMismatch dA + dB_wrong
+                else
+                    # Transpose/adjoint tests - only for float and complex types
+                    if T in (int_types...)
+                        continue
+                    end
+                    
+                    # Skip adjoint for real types (same as transpose)
+                    if T <: Real && (op_A === adjoint || op_B === adjoint)
+                        continue
+                    end
+                    
+                    # Square matrices for transpose tests
+                    m, n = 30, 30
+                    dims_A = op_A === identity ? (m, n) : (n, m)
+                    dims_B = op_B === identity ? (m, n) : (n, m)
+                    
+                    A = sprand(T, dims_A..., 0.1)
+                    B = sprand(T, dims_B..., 0.1)
+                    
+                    dA = adapt(op, DeviceSparseMatrixCSR(A))
+                    dB = adapt(op, DeviceSparseMatrixCSR(B))
+                    
+                    result = op_A(dA) + op_B(dB)
+                    expected = op_A(A) + op_B(B)
+                    @test collect(result) ≈ Matrix(expected)
+                end
             end
-
-            # Test transpose + transpose
-            result_trans_trans = transpose(dA) + transpose(dA)
-            expected_trans_trans = transpose(A) + transpose(A)
-            @test collect(result_trans_trans) ≈ Matrix(expected_trans_trans)
         end
     end
 
