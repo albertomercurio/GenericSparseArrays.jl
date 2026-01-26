@@ -15,12 +15,12 @@ types) enable dispatch on device characteristics.
 - `nzval::NzValT`        - stored values
 """
 struct DeviceSparseMatrixCSC{
-    Tv,
-    Ti,
-    ColPtrT<:AbstractVector{Ti},
-    RowValT<:AbstractVector{Ti},
-    NzValT<:AbstractVector{Tv},
-} <: AbstractDeviceSparseMatrix{Tv,Ti}
+        Tv,
+        Ti,
+        ColPtrT <: AbstractVector{Ti},
+        RowValT <: AbstractVector{Ti},
+        NzValT <: AbstractVector{Tv},
+    } <: AbstractDeviceSparseMatrix{Tv, Ti}
     m::Int
     n::Int
     colptr::ColPtrT
@@ -28,18 +28,18 @@ struct DeviceSparseMatrixCSC{
     nzval::NzValT
 
     function DeviceSparseMatrixCSC(
-        m::Integer,
-        n::Integer,
-        colptr::ColPtrT,
-        rowval::RowValT,
-        nzval::NzValT,
-    ) where {
-        Tv,
-        Ti,
-        ColPtrT<:AbstractVector{Ti},
-        RowValT<:AbstractVector{Ti},
-        NzValT<:AbstractVector{Tv},
-    }
+            m::Integer,
+            n::Integer,
+            colptr::ColPtrT,
+            rowval::RowValT,
+            nzval::NzValT,
+        ) where {
+            Tv,
+            Ti,
+            ColPtrT <: AbstractVector{Ti},
+            RowValT <: AbstractVector{Ti},
+            NzValT <: AbstractVector{Tv},
+        }
         get_backend(colptr) == get_backend(rowval) == get_backend(nzval) ||
             throw(ArgumentError("All storage vectors must be on the same device/backend."))
 
@@ -52,7 +52,7 @@ struct DeviceSparseMatrixCSC{
         length(rowval) == length(nzval) ||
             throw(ArgumentError("rowval and nzval must have same length"))
 
-        return new{Tv,Ti,ColPtrT,RowValT,NzValT}(
+        return new{Tv, Ti, ColPtrT, RowValT, NzValT}(
             Int(m),
             Int(n),
             copy(colptr),
@@ -123,7 +123,7 @@ SparseArrays.getrowval(A::DeviceSparseMatrixCSC) = rowvals(A)
 function SparseArrays.nzrange(A::DeviceSparseMatrixCSC, col::Integer)
     get_backend(A) isa KernelAbstractions.CPU ||
         throw(ArgumentError("nzrange is only supported on CPU backend"))
-    return getcolptr(A)[col]:(getcolptr(A)[col+1]-1)
+    return getcolptr(A)[col]:(getcolptr(A)[col + 1] - 1)
 end
 
 function LinearAlgebra.tr(A::DeviceSparseMatrixCSC)
@@ -136,7 +136,7 @@ function LinearAlgebra.tr(A::DeviceSparseMatrixCSC)
     @kernel function kernel_tr(res, @Const(colptr), @Const(rowval), @Const(nzval))
         col = @index(Global)
 
-        @inbounds for j = colptr[col]:(colptr[col+1]-1)
+        @inbounds for j in colptr[col]:(colptr[col + 1] - 1)
             if rowval[j] == col
                 @atomic res[1] += nzval[j]
             end
@@ -162,25 +162,25 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparse
         kernel_spmatmul! = transa ? :kernel_spmatmul_csc_T! : :kernel_spmatmul_csc_N!
 
         @eval function LinearAlgebra.mul!(
-            C::$TypeC,
-            A::$TypeA,
-            B::$TypeB,
-            α::Number,
-            β::Number,
-        ) where {$(whereT1(:T1)),$(whereT2(:T2)),T3}
+                C::$TypeC,
+                A::$TypeA,
+                B::$TypeB,
+                α::Number,
+                β::Number,
+            ) where {$(whereT1(:T1)), $(whereT2(:T2)), T3}
             size(A, 2) == size(B, 1) || throw(
                 DimensionMismatch(
-                    "second dimension of A, $(size(A,2)), does not match the first dimension of B, $(size(B,1))",
+                    "second dimension of A, $(size(A, 2)), does not match the first dimension of B, $(size(B, 1))",
                 ),
             )
             size(A, 1) == size(C, 1) || throw(
                 DimensionMismatch(
-                    "first dimension of A, $(size(A,1)), does not match the first dimension of C, $(size(C,1))",
+                    "first dimension of A, $(size(A, 1)), does not match the first dimension of C, $(size(C, 1))",
                 ),
             )
             size(B, 2) == size(C, 2) || throw(
                 DimensionMismatch(
-                    "second dimension of B, $(size(B,2)), does not match the second dimension of C, $(size(C,2))",
+                    "second dimension of B, $(size(B, 2)), does not match the second dimension of C, $(size(C, 2))",
                 ),
             )
 
@@ -231,18 +231,18 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparse
     kernel_dot! = transa ? :kernel_workgroup_dot_csc_T! : :kernel_workgroup_dot_csc_N!
 
     @eval function LinearAlgebra.dot(
-        x::AbstractVector{T2},
-        A::$TypeA,
-        y::AbstractVector{T3},
-    ) where {$(whereT1(:T1)),T2,T3}
+            x::AbstractVector{T2},
+            A::$TypeA,
+            y::AbstractVector{T3},
+        ) where {$(whereT1(:T1)), T2, T3}
         size(A, 1) == length(x) || throw(
             DimensionMismatch(
-                "first dimension of A, $(size(A,1)), does not match the length of x, $(length(x))",
+                "first dimension of A, $(size(A, 1)), does not match the length of x, $(length(x))",
             ),
         )
         size(A, 2) == length(y) || throw(
             DimensionMismatch(
-                "second dimension of A, $(size(A,2)), does not match the length of y, $(length(y))",
+                "second dimension of A, $(size(A, 2)), does not match the length of y, $(length(y))",
             ),
         )
 
@@ -365,7 +365,7 @@ function Base.:+(A::DeviceSparseMatrixCSC, B::DeviceSparseMatrixCSC)
     colptr_C[1:1] .= one(Ti)
 
     # Allocate result arrays
-    nnz_total = @allowscalar colptr_C[n+1] - one(Ti)
+    nnz_total = @allowscalar colptr_C[n + 1] - one(Ti)
     rowval_C = similar(getrowval(A), nnz_total)
     nzval_C = similar(nonzeros(A), Tv, nnz_total)
 
@@ -399,7 +399,7 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparse
         TypeA = wrapa(:(T1))
         TypeB = wrapb(:(T2))
 
-        @eval function Base.:+(A::$TypeA, B::$TypeB) where {$(whereT1(:T1)),$(whereT2(:T2))}
+        @eval function Base.:+(A::$TypeA, B::$TypeB) where {$(whereT1(:T1)), $(whereT2(:T2))}
             size(A) == size(B) || throw(
                 DimensionMismatch(
                     "dimensions must match: A has dims $(size(A)), B has dims $(size(B))",
@@ -480,7 +480,7 @@ julia> collect(C)
 function Base.:(*)(A::DeviceSparseMatrixCSC, B::DeviceSparseMatrixCSC)
     size(A, 2) == size(B, 1) || throw(
         DimensionMismatch(
-            "second dimension of A, $(size(A,2)), does not match first dimension of B, $(size(B,1))",
+            "second dimension of A, $(size(A, 2)), does not match first dimension of B, $(size(B, 1))",
         ),
     )
 
@@ -492,16 +492,16 @@ function Base.:(*)(A::DeviceSparseMatrixCSC, B::DeviceSparseMatrixCSC)
     m, k, n = size(A, 1), size(A, 2), size(B, 2)
     Ti = eltype(getcolptr(A))
     Tv = promote_type(eltype(nonzeros(A)), eltype(nonzeros(B)))
-    
+
     backend = backend_A
-    
+
     # Allocate workspace for counting (one flag per row per column of B)
     row_seen = similar(nonzeros(A), Bool, m * n)
-    
+
     # Count non-zeros per column of C
     nnz_per_col = similar(getcolptr(A), n)
     fill!(nnz_per_col, zero(Ti))
-    
+
     kernel_count! = kernel_count_nnz_spgemm_csc!(backend)
     kernel_count!(
         nnz_per_col,
@@ -513,23 +513,23 @@ function Base.:(*)(A::DeviceSparseMatrixCSC, B::DeviceSparseMatrixCSC)
         m;
         ndrange = (n,),
     )
-    
+
     # Build colptr for result matrix
     cumsum_nnz = _cumsum_AK(nnz_per_col)
     colptr_C = similar(getcolptr(A), n + 1)
     colptr_C[2:end] .= cumsum_nnz
     colptr_C[2:end] .+= one(Ti)
     colptr_C[1:1] .= one(Ti)
-    
+
     # Allocate result arrays
     nnz_total = @allowscalar colptr_C[n + 1] - one(Ti)
     rowval_C = similar(getrowval(A), nnz_total)
     nzval_C = similar(nonzeros(A), Tv, nnz_total)
-    
+
     # Allocate workspace for accumulation
     row_accum = similar(nonzeros(A), Tv, m * n)
     row_flags = similar(nonzeros(A), Bool, m * n)
-    
+
     # Compute the product
     kernel_mult! = kernel_spgemm_csc!(backend)
     kernel_mult!(
@@ -549,11 +549,11 @@ function Base.:(*)(A::DeviceSparseMatrixCSC, B::DeviceSparseMatrixCSC)
         Val{false}();
         ndrange = (n,),
     )
-    
+
     return DeviceSparseMatrixCSC(m, n, colptr_C, rowval_C, nzval_C)
 end
 
-# Multiplication with transpose/adjoint support  
+# Multiplication with transpose/adjoint support
 for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparseMatrixCSC)
     for (wrapb, transb, conjb, unwrapb, whereT2) in
         trans_adj_wrappers(:DeviceSparseMatrixCSC)
@@ -564,18 +564,18 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparse
         TypeB = wrapb(:(T2))
 
         @eval function Base.:(*)(
-            A::$TypeA,
-            B::$TypeB,
-        ) where {$(whereT1(:T1)),$(whereT2(:T2))}
+                A::$TypeA,
+                B::$TypeB,
+            ) where {$(whereT1(:T1)), $(whereT2(:T2))}
             size(A, 2) == size(B, 1) || throw(
                 DimensionMismatch(
-                    "second dimension of A, $(size(A,2)), does not match first dimension of B, $(size(B,1))",
+                    "second dimension of A, $(size(A, 2)), does not match first dimension of B, $(size(B, 1))",
                 ),
             )
 
             _A = $(unwrapa(:A))
             _B = $(unwrapb(:B))
-            
+
             backend_A = get_backend(_A)
             backend_B = get_backend(_B)
             backend_A == backend_B ||
@@ -586,7 +586,7 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparse
             A_csr = DeviceSparseMatrixCSR(A)
             B_csr = DeviceSparseMatrixCSR(B)
             result_csr = A_csr * B_csr
-            
+
             # Convert back to CSC
             return DeviceSparseMatrixCSC(result_csr)
         end

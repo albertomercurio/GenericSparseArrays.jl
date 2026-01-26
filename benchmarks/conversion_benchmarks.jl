@@ -13,12 +13,12 @@ Benchmark sparse matrix format conversions (CSC, CSR, COO).
 - `T`: Element type (default: Float64)
 """
 function benchmark_conversions!(
-    SUITE,
-    array_constructor,
-    array_type_name;
-    N = 10000,
-    T = Float64,
-)
+        SUITE,
+        array_constructor,
+        array_type_name;
+        N = 10000,
+        T = Float64,
+    )
     # Create sparse matrix with 1% density
     sm_csc_std = sprand(T, N, N, 0.01)
 

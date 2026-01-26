@@ -13,17 +13,17 @@ on different devices. The logical length is stored along with index/value buffer
 
 Constructors validate that the index and value vectors have matching length.
 """
-struct DeviceSparseVector{Tv,Ti,IndT<:AbstractVector{Ti},ValT<:AbstractVector{Tv}} <:
-       AbstractDeviceSparseVector{Tv,Ti}
+struct DeviceSparseVector{Tv, Ti, IndT <: AbstractVector{Ti}, ValT <: AbstractVector{Tv}} <:
+    AbstractDeviceSparseVector{Tv, Ti}
     n::Int
     nzind::IndT
     nzval::ValT
 
     function DeviceSparseVector(
-        n::Integer,
-        nzind::IndT,
-        nzval::ValT,
-    ) where {Tv,Ti<:Integer,IndT<:AbstractVector{Ti},ValT<:AbstractVector{Tv}}
+            n::Integer,
+            nzind::IndT,
+            nzval::ValT,
+        ) where {Tv, Ti <: Integer, IndT <: AbstractVector{Ti}, ValT <: AbstractVector{Tv}}
         get_backend(nzind) == get_backend(nzval) || throw(
             ArgumentError("Index and value vectors must be on the same device/backend."),
         )
@@ -32,7 +32,7 @@ struct DeviceSparseVector{Tv,Ti,IndT<:AbstractVector{Ti},ValT<:AbstractVector{Tv
         length(nzind) == length(nzval) ||
             throw(ArgumentError("index and value vectors must be the same length"))
 
-        return new{Tv,Ti,IndT,ValT}(Int(n), copy(nzind), copy(nzval))
+        return new{Tv, Ti, IndT, ValT}(Int(n), copy(nzind), copy(nzval))
     end
 end
 
@@ -137,19 +137,19 @@ function LinearAlgebra.dot(x::DeviceSparseVector, y::DenseVector)
 
     return @allowscalar res[1]
 end
-LinearAlgebra.dot(x::DenseVector{T1}, y::DeviceSparseVector{Tv}) where {T1<:Real,Tv<:Real} =
+LinearAlgebra.dot(x::DenseVector{T1}, y::DeviceSparseVector{Tv}) where {T1 <: Real, Tv <: Real} =
     dot(y, x)
 LinearAlgebra.dot(
     x::DenseVector{T1},
     y::DeviceSparseVector{Tv},
-) where {T1<:Complex,Tv<:Complex} = conj(dot(y, x))
+) where {T1 <: Complex, Tv <: Complex} = conj(dot(y, x))
 
 # Copied from SparseArrays.jl
 function _prep_sparsevec_copy_dest!(A::DeviceSparseVector, lB, nnzB)
     lA = length(A)
     lA >= lB || throw(BoundsError())
     # If the two vectors have the same length then all the elements in A will be overwritten.
-    if length(A) == lB
+    return if length(A) == lB
         resize!(nonzeros(A), nnzB)
         resize!(nonzeroinds(A), nnzB)
     else

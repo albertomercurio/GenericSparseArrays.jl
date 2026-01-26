@@ -8,17 +8,17 @@ devices (CPU, GPU, accelerators). This package keeps the hierarchy backend-agnos
 dispatch is expected to leverage the concrete types of internal buffers (e.g. `Vector`,
 `CuArray`, etc.) rather than an explicit backend flag.
 """
-abstract type AbstractDeviceSparseArray{Tv,Ti,N} <: AbstractSparseArray{Tv,Ti,N} end
+abstract type AbstractDeviceSparseArray{Tv, Ti, N} <: AbstractSparseArray{Tv, Ti, N} end
 
-const AbstractDeviceSparseVector{Tv,Ti} = AbstractDeviceSparseArray{Tv,Ti,1}
-const AbstractDeviceSparseMatrix{Tv,Ti} = AbstractDeviceSparseArray{Tv,Ti,2}
-const AbstractDeviceSparseVecOrMat{Tv,Ti} =
-    Union{AbstractDeviceSparseVector{Tv,Ti},AbstractDeviceSparseMatrix{Tv,Ti}}
+const AbstractDeviceSparseVector{Tv, Ti} = AbstractDeviceSparseArray{Tv, Ti, 1}
+const AbstractDeviceSparseMatrix{Tv, Ti} = AbstractDeviceSparseArray{Tv, Ti, 2}
+const AbstractDeviceSparseVecOrMat{Tv, Ti} =
+    Union{AbstractDeviceSparseVector{Tv, Ti}, AbstractDeviceSparseMatrix{Tv, Ti}}
 
 const AbstractDeviceSparseMatrixInclAdjointAndTranspose = Union{
     AbstractDeviceSparseMatrix,
-    Adjoint{<:Any,<:AbstractDeviceSparseMatrix},
-    Transpose{<:Any,<:AbstractDeviceSparseMatrix},
+    Adjoint{<:Any, <:AbstractDeviceSparseMatrix},
+    Transpose{<:Any, <:AbstractDeviceSparseMatrix},
 }
 
 Base.sum(A::AbstractDeviceSparseArray) = sum(nonzeros(A))
@@ -44,7 +44,7 @@ Base.:*(J::UniformScaling, A::AbstractDeviceSparseArray) = J.λ * A
 
 SparseArrays.getnzval(A::AbstractDeviceSparseArray) = nonzeros(A)
 function SparseArrays.nnz(A::AbstractDeviceSparseArray)
-    length(nonzeros(A))
+    return length(nonzeros(A))
 end
 
 KernelAbstractions.get_backend(A::AbstractDeviceSparseArray) = get_backend(nonzeros(A))
@@ -52,7 +52,7 @@ KernelAbstractions.get_backend(A::AbstractDeviceSparseArray) = get_backend(nonze
 # called by `show(io, MIME("text/plain"), ::AbstractDeviceSparseMatrixInclAdjointAndTranspose)`
 function Base.print_array(io::IO, A::AbstractDeviceSparseMatrixInclAdjointAndTranspose)
     S = SparseMatrixCSC(A)
-    if max(size(S)...) < 16
+    return if max(size(S)...) < 16
         Base.print_matrix(io, S)
     else
         _show_with_braille_patterns(io, S)
@@ -86,13 +86,13 @@ Base.:+(B::DenseMatrix, A::AbstractDeviceSparseMatrix) = A + B
 # Keep this at the end of the file
 trans_adj_wrappers(fmt) = (
     (T -> :($fmt{$T}), false, false, identity, T -> :($T)),
-    (T -> :(Transpose{$T,<:$fmt{$T}}), true, false, A -> :(parent($A)), T -> :($T<:Real)),
+    (T -> :(Transpose{$T, <:$fmt{$T}}), true, false, A -> :(parent($A)), T -> :($T <: Real)),
     (
-        T -> :(Transpose{$T,<:$fmt{$T}}),
+        T -> :(Transpose{$T, <:$fmt{$T}}),
         true,
         false,
         A -> :(parent($A)),
-        T -> :($T<:Complex),
+        T -> :($T <: Complex),
     ),
-    (T -> :(Adjoint{$T,<:$fmt{$T}}), true, true, A -> :(parent($A)), T -> :($T)),
+    (T -> :(Adjoint{$T, <:$fmt{$T}}), true, true, A -> :(parent($A)), T -> :($T)),
 )

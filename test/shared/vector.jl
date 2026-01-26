@@ -1,11 +1,11 @@
 function shared_test_vector(
-    op,
-    array_type::String,
-    int_types::Tuple,
-    float_types::Tuple,
-    complex_types::Tuple,
-)
-    @testset "DeviceSparseVector $array_type" verbose=true begin
+        op,
+        array_type::String,
+        int_types::Tuple,
+        float_types::Tuple,
+        complex_types::Tuple,
+    )
+    return @testset "DeviceSparseVector $array_type" verbose = true begin
         shared_test_conversion_vector(op, array_type, int_types, float_types, complex_types)
         shared_test_linearalgebra_vector(
             op,
@@ -18,13 +18,13 @@ function shared_test_vector(
 end
 
 function shared_test_conversion_vector(
-    op,
-    array_type::String,
-    int_types::Tuple,
-    float_types::Tuple,
-    complex_types::Tuple,
-)
-    @testset "Conversion" begin
+        op,
+        array_type::String,
+        int_types::Tuple,
+        float_types::Tuple,
+        complex_types::Tuple,
+    )
+    return @testset "Conversion" begin
         sv = SparseVector(10, int_types[end][], float_types[end][])
         sv2 = sparsevec(int_types[end][3], float_types[end][2.5], 8)
 
@@ -54,12 +54,12 @@ function shared_test_conversion_vector(
 end
 
 function shared_test_linearalgebra_vector(
-    op,
-    array_type::String,
-    int_types::Tuple,
-    float_types::Tuple,
-    complex_types::Tuple,
-)
+        op,
+        array_type::String,
+        int_types::Tuple,
+        float_types::Tuple,
+        complex_types::Tuple,
+    )
     @testset "Dot And Sum" begin
         for T in (int_types..., float_types..., complex_types...)
             v = sprand(T, 1000, 0.01)
@@ -146,7 +146,7 @@ function shared_test_linearalgebra_vector(
         end
     end
 
-    @testset "Norms and Normalization" begin
+    return @testset "Norms and Normalization" begin
         for T in (float_types..., complex_types...)
             v = sprand(T, 50, 0.5)
             dv = adapt(op, DeviceSparseVector(v))

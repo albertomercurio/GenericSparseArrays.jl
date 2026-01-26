@@ -3,7 +3,7 @@ function shared_test_vector_quality(op, T; kwargs...)
     shared_test_vector_quality_linearalgebra(op, T; kwargs...)
     shared_test_vector_quality_scalar_operations(op, T; kwargs...)
     shared_test_vector_quality_unary_operations(op, T; kwargs...)
-    shared_test_vector_quality_norms(op, T; kwargs...)
+    return shared_test_vector_quality_norms(op, T; kwargs...)
 end
 
 function shared_test_vector_quality_conversion(op, T; kwargs...)
@@ -73,7 +73,7 @@ function shared_test_vector_quality_scalar_operations(op, T; kwargs...)
 end
 
 function shared_test_vector_quality_unary_operations(op, T; kwargs...)
-    if !(T <: Union{Float32,Float64,ComplexF32,ComplexF64})
+    if !(T <: Union{Float32, Float64, ComplexF32, ComplexF64})
         return nothing
     end
 
@@ -120,7 +120,7 @@ function shared_test_vector_quality_unary_operations(op, T; kwargs...)
 end
 
 function shared_test_vector_quality_norms(op, T; kwargs...)
-    if !(T <: Union{Float32,Float64,ComplexF32,ComplexF64})
+    if !(T <: Union{Float32, Float64, ComplexF32, ComplexF64})
         return nothing
     end
 
@@ -156,7 +156,7 @@ function shared_test_matrix_csc_quality(op, T; kwargs...)
     shared_test_matrix_csc_quality_scalar_operations(op, T; kwargs...)
     shared_test_matrix_csc_quality_unary_operations(op, T; kwargs...)
     shared_test_matrix_csc_quality_uniformscaling(op, T; kwargs...)
-    shared_test_matrix_csc_quality_spmv_spmm(op, T; kwargs...)
+    return shared_test_matrix_csc_quality_spmv_spmm(op, T; kwargs...)
 end
 
 function shared_test_matrix_csc_quality_conversion(op, T; kwargs...)
@@ -209,7 +209,7 @@ function shared_test_matrix_csc_quality_scalar_operations(op, T; kwargs...)
 end
 
 function shared_test_matrix_csc_quality_unary_operations(op, T; kwargs...)
-    if !(T <: Union{Float32,Float64,ComplexF32,ComplexF64})
+    if !(T <: Union{Float32, Float64, ComplexF32, ComplexF64})
         return nothing
     end
 
@@ -254,7 +254,7 @@ function shared_test_matrix_csc_quality_unary_operations(op, T; kwargs...)
 end
 
 function shared_test_matrix_csc_quality_uniformscaling(op, T; kwargs...)
-    if !(T <: Union{Float32,Float64,ComplexF32,ComplexF64})
+    if !(T <: Union{Float32, Float64, ComplexF32, ComplexF64})
         return nothing
     end
 
@@ -328,7 +328,7 @@ function shared_test_matrix_csr_quality(op, T; kwargs...)
     shared_test_matrix_csr_quality_scalar_operations(op, T; kwargs...)
     shared_test_matrix_csr_quality_unary_operations(op, T; kwargs...)
     shared_test_matrix_csr_quality_uniformscaling(op, T; kwargs...)
-    shared_test_matrix_csr_quality_spmv(op, T; kwargs...)
+    return shared_test_matrix_csr_quality_spmv(op, T; kwargs...)
 end
 
 function shared_test_matrix_csr_quality_conversion(op, T; kwargs...)
@@ -425,7 +425,7 @@ function shared_test_matrix_csr_quality_scalar_operations(op, T; kwargs...)
 end
 
 function shared_test_matrix_csr_quality_unary_operations(op, T; kwargs...)
-    if !(T <: Union{Float32,Float64,ComplexF32,ComplexF64})
+    if !(T <: Union{Float32, Float64, ComplexF32, ComplexF64})
         return nothing
     end
 
@@ -470,7 +470,7 @@ function shared_test_matrix_csr_quality_unary_operations(op, T; kwargs...)
 end
 
 function shared_test_matrix_csr_quality_uniformscaling(op, T; kwargs...)
-    if !(T <: Union{Float32,Float64,ComplexF32,ComplexF64})
+    if !(T <: Union{Float32, Float64, ComplexF32, ComplexF64})
         return nothing
     end
 
@@ -502,7 +502,7 @@ function shared_test_matrix_coo_quality(op, T; kwargs...)
     shared_test_matrix_coo_quality_scalar_operations(op, T; kwargs...)
     shared_test_matrix_coo_quality_unary_operations(op, T; kwargs...)
     shared_test_matrix_coo_quality_uniformscaling(op, T; kwargs...)
-    shared_test_matrix_coo_quality_spmv(op, T; kwargs...)
+    return shared_test_matrix_coo_quality_spmv(op, T; kwargs...)
 end
 
 function shared_test_matrix_coo_quality_conversion(op, T; kwargs...)
@@ -590,7 +590,7 @@ function shared_test_matrix_coo_quality_scalar_operations(op, T; kwargs...)
 end
 
 function shared_test_matrix_coo_quality_unary_operations(op, T; kwargs...)
-    if !(T <: Union{Float32,Float64,ComplexF32,ComplexF64})
+    if !(T <: Union{Float32, Float64, ComplexF32, ComplexF64})
         return nothing
     end
 
@@ -635,7 +635,7 @@ function shared_test_matrix_coo_quality_unary_operations(op, T; kwargs...)
 end
 
 function shared_test_matrix_coo_quality_uniformscaling(op, T; kwargs...)
-    if !(T <: Union{Float32,Float64,ComplexF32,ComplexF64})
+    if !(T <: Union{Float32, Float64, ComplexF32, ComplexF64})
         return nothing
     end
 
