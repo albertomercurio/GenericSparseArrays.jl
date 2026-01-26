@@ -363,7 +363,7 @@ function Base.:+(A::DeviceSparseMatrixCSR, B::DeviceSparseMatrixCSR)
     rowptr_C[1:1] .= one(Ti)
 
     # Allocate result arrays
-    nnz_total = only(rowptr_C[m+1:m+1]) - one(Ti)
+    nnz_total = @allowscalar rowptr_C[m+1] - one(Ti)
     colval_C = similar(getcolval(A), nnz_total)
     nzval_C = similar(nonzeros(A), Tv, nnz_total)
 

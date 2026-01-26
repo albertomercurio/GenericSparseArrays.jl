@@ -389,7 +389,7 @@ function Base.:+(A::DeviceSparseMatrixCOO, B::DeviceSparseMatrixCOO)
 
     # Compute write indices using cumsum
     write_indices = _cumsum_AK(keep_mask)
-    nnz_final = only(write_indices[nnz_concat:nnz_concat])
+    nnz_final = @allowscalar write_indices[nnz_concat]
 
     # Allocate final arrays
     rowind_C = similar(getrowind(A), nnz_final)
@@ -495,7 +495,7 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparse
             kernel_mark!(keep_mask, rowind_sorted, colind_sorted, nnz_concat; ndrange = (nnz_concat,))
             
             write_indices = _cumsum_AK(keep_mask)
-            nnz_final = only(write_indices[nnz_concat:nnz_concat])
+            nnz_final = @allowscalar write_indices[nnz_concat]
             
             rowind_C = similar(getrowind(_A), nnz_final)
             colind_C = similar(getcolind(_A), nnz_final)

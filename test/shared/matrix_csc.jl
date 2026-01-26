@@ -282,15 +282,6 @@ function shared_test_linearalgebra_matrix_csc(
                 (identity, transpose, adjoint),
                 (identity, transpose, adjoint),
             )
-                # Skip transpose/adjoint for int types
-                if T in (int_types...) && (op_A !== identity || op_B !== identity)
-                    continue
-                end
-                
-                # Skip adjoint for real types (same as transpose)
-                if T <: Real && (op_A === adjoint || op_B === adjoint)
-                    continue
-                end
                 
                 # Use rectangular matrices for identity+identity, square for transpose/adjoint
                 m, n = (op_A === identity && op_B === identity) ? (50, 40) : (30, 30)

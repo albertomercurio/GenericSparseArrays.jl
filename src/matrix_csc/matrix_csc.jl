@@ -365,7 +365,7 @@ function Base.:+(A::DeviceSparseMatrixCSC, B::DeviceSparseMatrixCSC)
     colptr_C[1:1] .= one(Ti)
 
     # Allocate result arrays
-    nnz_total = only(colptr_C[n+1:n+1]) - one(Ti)
+    nnz_total =  @allowscalar colptr_C[n+1] - one(Ti)
     rowval_C = similar(getrowval(A), nnz_total)
     nzval_C = similar(nonzeros(A), Tv, nnz_total)
 
