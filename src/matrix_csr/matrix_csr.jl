@@ -467,13 +467,9 @@ from SparseArrays.jl.
 ```jldoctest
 julia> using DeviceSparseArrays, SparseArrays
 
-julia> A_coo = DeviceSparseMatrixCOO(sparse([1, 2], [1, 2], [2.0, 3.0], 2, 2));
+julia> A = DeviceSparseMatrixCSR(DeviceSparseMatrixCOO(sparse([1, 2], [1, 2], [2.0, 3.0], 2, 2)));
 
-julia> B_coo = DeviceSparseMatrixCOO(sparse([1, 2], [1, 2], [4.0, 5.0], 2, 2));
-
-julia> A = DeviceSparseMatrixCSR(A_coo);
-
-julia> B = DeviceSparseMatrixCSR(B_coo);
+julia> B = DeviceSparseMatrixCSR(DeviceSparseMatrixCOO(sparse([1, 2], [1, 2], [4.0, 5.0], 2, 2)));
 
 julia> C = A * B;
 

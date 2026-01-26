@@ -235,6 +235,3 @@ end
         end
     end
 end
-
-# Kernel for sparse-sparse matrix multiplication (COO * COO)
-# Instead of generating all possible pairs, we'll use a different strategy in the main function
