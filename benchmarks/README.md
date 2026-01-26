@@ -1,6 +1,6 @@
-# DeviceSparseArrays.jl Benchmarks
+# GenericSparseArrays.jl Benchmarks
 
-This directory contains benchmark tracking for the DeviceSparseArrays.jl package using [BenchmarkTools.jl](https://github.com/JuliaCI/BenchmarkTools.jl) and [github-action-benchmark](https://github.com/benchmark-action/github-action-benchmark).
+This directory contains benchmark tracking for the GenericSparseArrays.jl package using [BenchmarkTools.jl](https://github.com/JuliaCI/BenchmarkTools.jl) and [github-action-benchmark](https://github.com/benchmark-action/github-action-benchmark).
 
 ## Structure
 
@@ -75,7 +75,7 @@ The workflow:
 ## Viewing Benchmark Results
 
 Benchmark results are tracked over time and can be viewed at:
-https://albertomercurio.github.io/DeviceSparseArrays.jl/benchmarks/
+https://albertomercurio.github.io/GenericSparseArrays.jl/benchmarks/
 
 ## Adding New Benchmarks
 
@@ -87,7 +87,7 @@ To add new benchmarks:
    function benchmark_new_feature!(SUITE, array_constructor, array_type_name; N=10000, T=Float64)
        # Create test data using sprand
        data = sprand(T, N, N, 0.05)
-       adapted_data = adapt(array_constructor, DeviceSparseMatrix...(data))
+       adapted_data = adapt(array_constructor, GenericSparseMatrix...(data))
        
        # Add to suite
        group_name = "Feature Name"

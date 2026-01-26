@@ -1,10 +1,10 @@
 # API Reference
 
 ```@meta
-CurrentModule = DeviceSparseArrays
+CurrentModule = GenericSparseArrays
 ```
 
-This page contains the complete API documentation for DeviceSparseArrays.jl.
+This page contains the complete API documentation for GenericSparseArrays.jl.
 
 ```@index
 ```
@@ -12,16 +12,16 @@ This page contains the complete API documentation for DeviceSparseArrays.jl.
 ## Types
 
 ```@docs
-AbstractDeviceSparseArray
-DeviceSparseVector
-DeviceSparseMatrixCSC
-DeviceSparseMatrixCSR
-DeviceSparseMatrixCOO
+AbstractGenericSparseArray
+GenericSparseVector
+GenericSparseMatrixCSC
+GenericSparseMatrixCSR
+GenericSparseMatrixCOO
 ```
 
 ## Functions
 
 ```@autodocs
-Modules = [DeviceSparseArrays]
+Modules = [GenericSparseArrays]
 Order = [:function]
 ```

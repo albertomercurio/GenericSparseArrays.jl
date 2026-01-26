@@ -5,7 +5,7 @@ function shared_test_vector(
         float_types::Tuple,
         complex_types::Tuple,
     )
-    return @testset "DeviceSparseVector $array_type" verbose = true begin
+    return @testset "GenericSparseVector $array_type" verbose = true begin
         shared_test_conversion_vector(op, array_type, int_types, float_types, complex_types)
         shared_test_linearalgebra_vector(
             op,
@@ -28,22 +28,22 @@ function shared_test_conversion_vector(
         sv = SparseVector(10, int_types[end][], float_types[end][])
         sv2 = sparsevec(int_types[end][3], float_types[end][2.5], 8)
 
-        # test only conversion SparseVector <-> DeviceSparseVector
+        # test only conversion SparseVector <-> GenericSparseVector
         if op === Array
-            dsv = DeviceSparseVector(sv)
+            dsv = GenericSparseVector(sv)
             @test size(dsv) == (10,)
             @test length(dsv) == 10
             @test SparseVector(dsv) == sv
         end
 
-        dsv = adapt(op, DeviceSparseVector(sv))
+        dsv = adapt(op, GenericSparseVector(sv))
         @test size(dsv) == (10,)
         @test length(dsv) == 10
         @test nnz(dsv) == 0
         @test collect(nonzeros(dsv)) == float_types[end][]
         @test collect(nonzeroinds(dsv)) == int_types[end][]
 
-        dsv2 = adapt(op, DeviceSparseVector(sv2))
+        dsv2 = adapt(op, GenericSparseVector(sv2))
         @test size(dsv2) == (8,)
         @test length(dsv2) == 8
         @test nnz(dsv2) == 1
@@ -64,7 +64,7 @@ function shared_test_linearalgebra_vector(
         for T in (int_types..., float_types..., complex_types...)
             v = sprand(T, 1000, 0.01)
             y = rand(T, 1000)
-            dv = adapt(op, DeviceSparseVector(v))
+            dv = adapt(op, GenericSparseVector(v))
             dy = op(y)
 
             @test sum(dv) ≈ sum(v)
@@ -82,7 +82,7 @@ function shared_test_linearalgebra_vector(
     @testset "Scalar Operations" begin
         for T in (int_types..., float_types..., complex_types...)
             v = sprand(T, 100, 0.3)
-            dv = adapt(op, DeviceSparseVector(v))
+            dv = adapt(op, GenericSparseVector(v))
 
             α = T <: Complex ? T(2.0 + 1.0im) : (T <: Integer ? T(2) : T(2.5))
 
@@ -106,7 +106,7 @@ function shared_test_linearalgebra_vector(
     @testset "Unary Operations" begin
         for T in (float_types..., complex_types...)
             v = sprand(T, 80, 0.4)
-            dv = adapt(op, DeviceSparseVector(v))
+            dv = adapt(op, GenericSparseVector(v))
 
             # Test unary plus (inherited from AbstractArray)
             pos_v = +dv
@@ -149,7 +149,7 @@ function shared_test_linearalgebra_vector(
     return @testset "Norms and Normalization" begin
         for T in (float_types..., complex_types...)
             v = sprand(T, 50, 0.5)
-            dv = adapt(op, DeviceSparseVector(v))
+            dv = adapt(op, GenericSparseVector(v))
 
             # Test different norms
             norm2 = norm(dv)

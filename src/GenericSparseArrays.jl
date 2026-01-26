@@ -1,4 +1,4 @@
-module DeviceSparseArrays
+module GenericSparseArrays
 
 using LinearAlgebra
 import LinearAlgebra: wrap, copymutable_oftype, __normalize!, kron
@@ -26,11 +26,11 @@ using AcceleratedKernels
 
 import Adapt
 
-export AbstractDeviceSparseArray,
-    AbstractDeviceSparseVector, AbstractDeviceSparseMatrix, AbstractDeviceSparseVecOrMat
+export AbstractGenericSparseArray,
+    AbstractGenericSparseVector, AbstractGenericSparseMatrix, AbstractGenericSparseVecOrMat
 
-export DeviceSparseVector,
-    DeviceSparseMatrixCSC, DeviceSparseMatrixCSR, DeviceSparseMatrixCOO
+export GenericSparseVector,
+    GenericSparseMatrixCSC, GenericSparseMatrixCSR, GenericSparseMatrixCOO
 
 include("core.jl")
 include("helpers.jl")

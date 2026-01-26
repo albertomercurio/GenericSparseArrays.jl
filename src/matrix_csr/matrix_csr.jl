@@ -1,7 +1,7 @@
-# DeviceSparseMatrixCSR implementation
+# GenericSparseMatrixCSR implementation
 
 """
-    DeviceSparseMatrixCSR{Tv,Ti,RowPtrT,ColValT,NzValT} <: AbstractDeviceSparseMatrix{Tv,Ti}
+    GenericSparseMatrixCSR{Tv,Ti,RowPtrT,ColValT,NzValT} <: AbstractGenericSparseMatrix{Tv,Ti}
 
 Compressed Sparse Row (CSR) matrix with generic storage vectors for row
 pointer, column indices, and nonzero values. Buffer types (e.g. `Vector`, GPU array
@@ -14,20 +14,20 @@ types) enable dispatch on device characteristics.
 - `colval::ColValT`      - column indices of stored entries
 - `nzval::NzValT`        - stored values
 """
-struct DeviceSparseMatrixCSR{
+struct GenericSparseMatrixCSR{
         Tv,
         Ti,
         RowPtrT <: AbstractVector{Ti},
         ColValT <: AbstractVector{Ti},
         NzValT <: AbstractVector{Tv},
-    } <: AbstractDeviceSparseMatrix{Tv, Ti}
+    } <: AbstractGenericSparseMatrix{Tv, Ti}
     m::Int
     n::Int
     rowptr::RowPtrT
     colval::ColValT
     nzval::NzValT
 
-    function DeviceSparseMatrixCSR(
+    function GenericSparseMatrixCSR(
             m::Integer,
             n::Integer,
             rowptr::RowPtrT,
@@ -62,7 +62,7 @@ struct DeviceSparseMatrixCSR{
     end
 end
 
-Adapt.adapt_structure(to, A::DeviceSparseMatrixCSR) = DeviceSparseMatrixCSR(
+Adapt.adapt_structure(to, A::GenericSparseMatrixCSR) = GenericSparseMatrixCSR(
     A.m,
     A.n,
     Adapt.adapt_structure(to, A.rowptr),
@@ -70,23 +70,23 @@ Adapt.adapt_structure(to, A::DeviceSparseMatrixCSR) = DeviceSparseMatrixCSR(
     Adapt.adapt_structure(to, A.nzval),
 )
 
-Base.size(A::DeviceSparseMatrixCSR) = (A.m, A.n)
-Base.length(A::DeviceSparseMatrixCSR) = A.m * A.n
-Base.copy(A::DeviceSparseMatrixCSR) =
-    DeviceSparseMatrixCSR(A.m, A.n, copy(A.rowptr), copy(A.colval), copy(A.nzval))
+Base.size(A::GenericSparseMatrixCSR) = (A.m, A.n)
+Base.length(A::GenericSparseMatrixCSR) = A.m * A.n
+Base.copy(A::GenericSparseMatrixCSR) =
+    GenericSparseMatrixCSR(A.m, A.n, copy(A.rowptr), copy(A.colval), copy(A.nzval))
 
-Base.collect(A::DeviceSparseMatrixCSR) = collect(SparseMatrixCSC(A))
+Base.collect(A::GenericSparseMatrixCSR) = collect(SparseMatrixCSC(A))
 
-function Base.zero(A::DeviceSparseMatrixCSR)
+function Base.zero(A::GenericSparseMatrixCSR)
     rowptr = similar(A.rowptr)
     rowval = similar(A.colval, 0)
     nzval = similar(A.nzval, 0)
     fill!(rowptr, one(eltype(rowptr)))
-    return DeviceSparseMatrixCSR(A.m, A.n, rowptr, rowval, nzval)
+    return GenericSparseMatrixCSR(A.m, A.n, rowptr, rowval, nzval)
 end
 
-function Base.:(*)(α::Number, A::DeviceSparseMatrixCSR)
-    return DeviceSparseMatrixCSR(
+function Base.:(*)(α::Number, A::GenericSparseMatrixCSR)
+    return GenericSparseMatrixCSR(
         A.m,
         A.n,
         copy(getrowptr(A)),
@@ -94,40 +94,40 @@ function Base.:(*)(α::Number, A::DeviceSparseMatrixCSR)
         α .* nonzeros(A),
     )
 end
-Base.:(*)(A::DeviceSparseMatrixCSR, α::Number) = α * A
-Base.:(/)(A::DeviceSparseMatrixCSR, α::Number) = (1 / α) * A
+Base.:(*)(A::GenericSparseMatrixCSR, α::Number) = α * A
+Base.:(/)(A::GenericSparseMatrixCSR, α::Number) = (1 / α) * A
 
-function Base.:-(A::DeviceSparseMatrixCSR)
-    return DeviceSparseMatrixCSR(A.m, A.n, copy(A.rowptr), copy(A.colval), -A.nzval)
+function Base.:-(A::GenericSparseMatrixCSR)
+    return GenericSparseMatrixCSR(A.m, A.n, copy(A.rowptr), copy(A.colval), -A.nzval)
 end
 
-Base.conj(A::DeviceSparseMatrixCSR{<:Real}) = A
-function Base.conj(A::DeviceSparseMatrixCSR{<:Complex})
-    return DeviceSparseMatrixCSR(A.m, A.n, copy(A.rowptr), copy(A.colval), conj.(A.nzval))
+Base.conj(A::GenericSparseMatrixCSR{<:Real}) = A
+function Base.conj(A::GenericSparseMatrixCSR{<:Complex})
+    return GenericSparseMatrixCSR(A.m, A.n, copy(A.rowptr), copy(A.colval), conj.(A.nzval))
 end
 
-Base.real(A::DeviceSparseMatrixCSR{<:Real}) = A
-function Base.real(A::DeviceSparseMatrixCSR{<:Complex})
-    return DeviceSparseMatrixCSR(A.m, A.n, copy(A.rowptr), copy(A.colval), real.(A.nzval))
+Base.real(A::GenericSparseMatrixCSR{<:Real}) = A
+function Base.real(A::GenericSparseMatrixCSR{<:Complex})
+    return GenericSparseMatrixCSR(A.m, A.n, copy(A.rowptr), copy(A.colval), real.(A.nzval))
 end
 
-Base.imag(A::DeviceSparseMatrixCSR{<:Real}) = zero(A)
-function Base.imag(A::DeviceSparseMatrixCSR{<:Complex})
-    return DeviceSparseMatrixCSR(A.m, A.n, copy(A.rowptr), copy(A.colval), imag.(A.nzval))
+Base.imag(A::GenericSparseMatrixCSR{<:Real}) = zero(A)
+function Base.imag(A::GenericSparseMatrixCSR{<:Complex})
+    return GenericSparseMatrixCSR(A.m, A.n, copy(A.rowptr), copy(A.colval), imag.(A.nzval))
 end
 
-SparseArrays.nonzeros(A::DeviceSparseMatrixCSR) = A.nzval
-getrowptr(A::DeviceSparseMatrixCSR) = A.rowptr
-colvals(A::DeviceSparseMatrixCSR) = A.colval
-getcolval(A::DeviceSparseMatrixCSR) = colvals(A)
-SparseArrays.getnzval(A::DeviceSparseMatrixCSR) = nonzeros(A)
-function SparseArrays.nzrange(A::DeviceSparseMatrixCSR, row::Integer)
+SparseArrays.nonzeros(A::GenericSparseMatrixCSR) = A.nzval
+getrowptr(A::GenericSparseMatrixCSR) = A.rowptr
+colvals(A::GenericSparseMatrixCSR) = A.colval
+getcolval(A::GenericSparseMatrixCSR) = colvals(A)
+SparseArrays.getnzval(A::GenericSparseMatrixCSR) = nonzeros(A)
+function SparseArrays.nzrange(A::GenericSparseMatrixCSR, row::Integer)
     get_backend(A) isa KernelAbstractions.CPU ||
         throw(ArgumentError("nzrange is only supported on CPU backend"))
     return getrowptr(A)[row]:(getrowptr(A)[row + 1] - 1)
 end
 
-function LinearAlgebra.tr(A::DeviceSparseMatrixCSR)
+function LinearAlgebra.tr(A::GenericSparseMatrixCSR)
     m, n = size(A)
     m == n || throw(DimensionMismatch("Matrix must be square to compute the trace."))
 
@@ -154,7 +154,7 @@ function LinearAlgebra.tr(A::DeviceSparseMatrixCSR)
 end
 
 # Matrix-Vector and Matrix-Matrix multiplication
-for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparseMatrixCSR)
+for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:GenericSparseMatrixCSR)
     for (wrapb, transb, conjb, unwrapb, whereT2) in trans_adj_wrappers(:DenseVecOrMat)
         TypeA = wrapa(:(T1))
         TypeB = wrapb(:(T2))
@@ -223,7 +223,7 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparse
 end
 
 # Three-argument dot product: dot(x, A, y) = x' * A * y
-for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparseMatrixCSR)
+for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:GenericSparseMatrixCSR)
     TypeA = wrapa(:(T1))
 
     kernel_dot! = transa ? :kernel_workgroup_dot_csr_T! : :kernel_workgroup_dot_csr_N!
@@ -288,8 +288,8 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparse
     end
 end
 
-# Helper function for adding DeviceSparseMatrixCSR to dense matrix
-function _add_sparse_to_dense!(C::DenseMatrix, A::DeviceSparseMatrixCSR)
+# Helper function for adding GenericSparseMatrixCSR to dense matrix
+function _add_sparse_to_dense!(C::DenseMatrix, A::GenericSparseMatrixCSR)
     backend = get_backend(A)
     m = size(A, 1)
 
@@ -300,18 +300,18 @@ function _add_sparse_to_dense!(C::DenseMatrix, A::DeviceSparseMatrixCSR)
 end
 
 """
-    +(A::DeviceSparseMatrixCSR, B::DeviceSparseMatrixCSR)
+    +(A::GenericSparseMatrixCSR, B::GenericSparseMatrixCSR)
 
 Add two sparse matrices in CSR format. Both matrices must have the same dimensions
 and be on the same backend (device).
 
 # Examples
 ```jldoctest
-julia> using DeviceSparseArrays, SparseArrays
+julia> using GenericSparseArrays, SparseArrays
 
-julia> A = DeviceSparseMatrixCSR(sparse([1, 2], [1, 2], [1.0, 2.0], 2, 2));
+julia> A = GenericSparseMatrixCSR(sparse([1, 2], [1, 2], [1.0, 2.0], 2, 2));
 
-julia> B = DeviceSparseMatrixCSR(sparse([1, 2], [2, 1], [3.0, 4.0], 2, 2));
+julia> B = GenericSparseMatrixCSR(sparse([1, 2], [2, 1], [3.0, 4.0], 2, 2));
 
 julia> C = A + B;
 
@@ -321,7 +321,7 @@ julia> collect(C)
  4.0  2.0
 ```
 """
-function Base.:+(A::DeviceSparseMatrixCSR, B::DeviceSparseMatrixCSR)
+function Base.:+(A::GenericSparseMatrixCSR, B::GenericSparseMatrixCSR)
     size(A) == size(B) || throw(
         DimensionMismatch(
             "dimensions must match: A has dims $(size(A)), B has dims $(size(B))",
@@ -384,13 +384,13 @@ function Base.:+(A::DeviceSparseMatrixCSR, B::DeviceSparseMatrixCSR)
         ndrange = (m,),
     )
 
-    return DeviceSparseMatrixCSR(m, n, rowptr_C, colval_C, nzval_C)
+    return GenericSparseMatrixCSR(m, n, rowptr_C, colval_C, nzval_C)
 end
 
 # Addition with transpose/adjoint support
-for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparseMatrixCSR)
+for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:GenericSparseMatrixCSR)
     for (wrapb, transb, conjb, unwrapb, whereT2) in
-        trans_adj_wrappers(:DeviceSparseMatrixCSR)
+        trans_adj_wrappers(:GenericSparseMatrixCSR)
         # Skip the case where both are not transposed (already handled above)
         (transa == false && transb == false) && continue
 
@@ -407,18 +407,18 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparse
             # Convert both to CSC (transpose/adjoint of CSR has CSC structure)
             # and use existing CSC + CSC addition. The conversion methods
             # already handle transpose/adjoint correctly.
-            A_csc = DeviceSparseMatrixCSC(A)
-            B_csc = DeviceSparseMatrixCSC(B)
+            A_csc = GenericSparseMatrixCSC(A)
+            B_csc = GenericSparseMatrixCSC(B)
             result_csc = A_csc + B_csc
 
             # Convert back to CSR
-            return DeviceSparseMatrixCSR(result_csc)
+            return GenericSparseMatrixCSR(result_csc)
         end
     end
 end
 
 """
-    kron(A::DeviceSparseMatrixCSR, B::DeviceSparseMatrixCSR)
+    kron(A::GenericSparseMatrixCSR, B::GenericSparseMatrixCSR)
 
 Compute the Kronecker product of two sparse matrices in CSR format.
 
@@ -427,15 +427,15 @@ product, and converting back to CSR format.
 
 # Examples
 ```jldoctest
-julia> using DeviceSparseArrays, SparseArrays
+julia> using GenericSparseArrays, SparseArrays
 
-julia> A_coo = DeviceSparseMatrixCOO(sparse([1, 2], [1, 2], [1.0, 2.0], 2, 2));
+julia> A_coo = GenericSparseMatrixCOO(sparse([1, 2], [1, 2], [1.0, 2.0], 2, 2));
 
-julia> B_coo = DeviceSparseMatrixCOO(sparse([1, 2], [1, 2], [3.0, 4.0], 2, 2));
+julia> B_coo = GenericSparseMatrixCOO(sparse([1, 2], [1, 2], [3.0, 4.0], 2, 2));
 
-julia> A = DeviceSparseMatrixCSR(A_coo);
+julia> A = GenericSparseMatrixCSR(A_coo);
 
-julia> B = DeviceSparseMatrixCSR(B_coo);
+julia> B = GenericSparseMatrixCSR(B_coo);
 
 julia> C = kron(A, B);
 
@@ -446,16 +446,16 @@ julia> nnz(C)
 4
 ```
 """
-function LinearAlgebra.kron(A::DeviceSparseMatrixCSR, B::DeviceSparseMatrixCSR)
+function LinearAlgebra.kron(A::GenericSparseMatrixCSR, B::GenericSparseMatrixCSR)
     # Convert to COO, compute kron, convert back to CSR
-    A_coo = DeviceSparseMatrixCOO(A)
-    B_coo = DeviceSparseMatrixCOO(B)
+    A_coo = GenericSparseMatrixCOO(A)
+    B_coo = GenericSparseMatrixCOO(B)
     C_coo = kron(A_coo, B_coo)
-    return DeviceSparseMatrixCSR(C_coo)
+    return GenericSparseMatrixCSR(C_coo)
 end
 
 """
-    *(A::DeviceSparseMatrixCSR, B::DeviceSparseMatrixCSR)
+    *(A::GenericSparseMatrixCSR, B::GenericSparseMatrixCSR)
 
 Multiply two sparse matrices in CSR format. Both matrices must have compatible dimensions
 (number of columns of A equals number of rows of B) and be on the same backend (device).
@@ -465,11 +465,11 @@ multiplication (SpGEMM).
 
 # Examples
 ```jldoctest
-julia> using DeviceSparseArrays, SparseArrays
+julia> using GenericSparseArrays, SparseArrays
 
-julia> A = DeviceSparseMatrixCSR(DeviceSparseMatrixCOO(sparse([1, 2], [1, 2], [2.0, 3.0], 2, 2)));
+julia> A = GenericSparseMatrixCSR(GenericSparseMatrixCOO(sparse([1, 2], [1, 2], [2.0, 3.0], 2, 2)));
 
-julia> B = DeviceSparseMatrixCSR(DeviceSparseMatrixCOO(sparse([1, 2], [1, 2], [4.0, 5.0], 2, 2)));
+julia> B = GenericSparseMatrixCSR(GenericSparseMatrixCOO(sparse([1, 2], [1, 2], [4.0, 5.0], 2, 2)));
 
 julia> C = A * B;
 
@@ -479,7 +479,7 @@ julia> collect(C)
  0.0  15.0
 ```
 """
-function Base.:(*)(A::DeviceSparseMatrixCSR, B::DeviceSparseMatrixCSR)
+function Base.:(*)(A::GenericSparseMatrixCSR, B::GenericSparseMatrixCSR)
     size(A, 2) == size(B, 1) || throw(
         DimensionMismatch(
             "second dimension of A, $(size(A, 2)), does not match first dimension of B, $(size(B, 1))",
@@ -552,13 +552,13 @@ function Base.:(*)(A::DeviceSparseMatrixCSR, B::DeviceSparseMatrixCSR)
         ndrange = (m,),
     )
 
-    return DeviceSparseMatrixCSR(m, n, rowptr_C, colval_C, nzval_C)
+    return GenericSparseMatrixCSR(m, n, rowptr_C, colval_C, nzval_C)
 end
 
 # Multiplication with transpose/adjoint support
-for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparseMatrixCSR)
+for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:GenericSparseMatrixCSR)
     for (wrapb, transb, conjb, unwrapb, whereT2) in
-        trans_adj_wrappers(:DeviceSparseMatrixCSR)
+        trans_adj_wrappers(:GenericSparseMatrixCSR)
         # Skip the case where both are not transposed (already handled above)
         (transa == false && transb == false) && continue
 
@@ -582,12 +582,12 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparse
 
             # For transpose/adjoint, convert to CSC format (which is CSR transposed structurally)
             # This follows the same pattern as addition with transpose/adjoint
-            A_csc = DeviceSparseMatrixCSC(A)
-            B_csc = DeviceSparseMatrixCSC(B)
+            A_csc = GenericSparseMatrixCSC(A)
+            B_csc = GenericSparseMatrixCSC(B)
             result_csc = A_csc * B_csc
 
             # Convert back to CSR
-            return DeviceSparseMatrixCSR(result_csc)
+            return GenericSparseMatrixCSR(result_csc)
         end
     end
 end

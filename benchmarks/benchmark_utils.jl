@@ -14,11 +14,11 @@ This function uses multiple dispatch to handle different array types:
 # Examples
 ```julia
 # GPU array with KernelAbstractions - will synchronize
-gpu_arr = adapt(CuArray, DeviceSparseVector(...))
+gpu_arr = adapt(CuArray, GenericSparseVector(...))
 _synchronize_backend(gpu_arr)
 
 # CPU array or arrays without KernelAbstractions - no-op
-cpu_arr = DeviceSparseVector(...)
+cpu_arr = GenericSparseVector(...)
 _synchronize_backend(cpu_arr)
 
 # Extend for custom array types:
@@ -28,11 +28,11 @@ _synchronize_backend(cpu_arr)
 _synchronize_backend(arr) = nothing  # Fallback: no-op for arrays without KernelAbstractions
 
 """
-    _synchronize_backend(arr::AbstractDeviceSparseArray)
+    _synchronize_backend(arr::AbstractGenericSparseArray)
 
-Synchronize KernelAbstractions backend for DeviceSparseArray types.
+Synchronize KernelAbstractions backend for GenericSparseArray types.
 """
-_synchronize_backend(arr::AbstractDeviceSparseArray) = _synchronize_backend(nonzeros(arr))
+_synchronize_backend(arr::AbstractGenericSparseArray) = _synchronize_backend(nonzeros(arr))
 
 function _synchronize_backend(x::AbstractArray)
     backend = KernelAbstractions.get_backend(x)

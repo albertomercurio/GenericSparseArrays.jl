@@ -1,15 +1,15 @@
-# Copilot Instructions for DeviceSparseArrays.jl
+# Copilot Instructions for GenericSparseArrays.jl
 
 These guidelines give AI coding agents the minimum project-specific context to be productive. They reflect the repository as it exists now and should NOT assume unimplemented features.
 
 ## 1. Purpose & Current State
-- Package name: `DeviceSparseArrays` — intended focus: backend-agnostic sparse array types & operations for CPU/GPU/accelerators.
+- Package name: `GenericSparseArrays` — intended focus: backend-agnostic sparse array types & operations for CPU/GPU/accelerators.
 - Unlike traditional SparseArrays.jl, this package aims to provide a unified interface for sparse data structures that can seamlessly operate across different hardware backends.
 - Any new functionality you add must be inside this module and accompanied by tests + docstrings.
 
 ## 2. Repository Layout
 - `Project.toml` / `Manifest.toml`: Project environment. Add deps with compat bounds in alphabetical order; do not remove existing `[compat]` or test extras.
-- `src/DeviceSparseArrays.jl`: Single entry point. Keep exports explicit (add an `export` block when you introduce public APIs). Keep imports explicit (use `import PackageName: symbol` or `using PackageName: symbol` as needed).
+- `src/GenericSparseArrays.jl`: Single entry point. Keep exports explicit (add an `export` block when you introduce public APIs). Keep imports explicit (use `import PackageName: symbol` or `using PackageName: symbol` as needed).
 - `docs/` (Documenter): `make.jl` sets up docs + doctests. `docs/src/index.md` auto-docs the module; adding docstrings automatically surfaces them.
 
 ## 3. Development Workflows

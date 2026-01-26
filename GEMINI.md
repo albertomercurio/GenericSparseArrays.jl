@@ -1,8 +1,8 @@
-# Gemini Project Context: DeviceSparseArrays.jl
+# Gemini Project Context: GenericSparseArrays.jl
 
 ## Project Overview
 
-`DeviceSparseArrays.jl` is a Julia package that provides backend-agnostic sparse array types and operations for CPUs, GPUs, and other accelerators. It aims to offer a unified interface for sparse data structures that can seamlessly operate across different hardware backends.
+`GenericSparseArrays.jl` is a Julia package that provides backend-agnostic sparse array types and operations for CPUs, GPUs, and other accelerators. It aims to offer a unified interface for sparse data structures that can seamlessly operate across different hardware backends.
 
 The package supports various sparse formats like CSC, CSR, and COO, and can be used with backends such as:
 - CPU (standard Julia arrays)

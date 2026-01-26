@@ -1,44 +1,44 @@
 # Conversions between CSC, CSR, and COO sparse matrix formats
 
 # ============================================================================
-# SparseMatrixCSC ↔ DeviceSparseMatrix (CSC-CSR-COO) Conversions
+# SparseMatrixCSC ↔ GenericSparseMatrix (CSC-CSR-COO) Conversions
 # ============================================================================
 
-DeviceSparseMatrixCSC(A::SparseMatrixCSC) =
-    DeviceSparseMatrixCSC(size(A, 1), size(A, 2), A.colptr, A.rowval, A.nzval)
+GenericSparseMatrixCSC(A::SparseMatrixCSC) =
+    GenericSparseMatrixCSC(size(A, 1), size(A, 2), A.colptr, A.rowval, A.nzval)
 
-SparseMatrixCSC(A::DeviceSparseMatrixCSC) = SparseMatrixCSC(
+SparseMatrixCSC(A::GenericSparseMatrixCSC) = SparseMatrixCSC(
     size(A, 1),
     size(A, 2),
     collect(A.colptr),
     collect(A.rowval),
     collect(A.nzval),
 )
-function SparseMatrixCSC(A::Transpose{Tv, <:DeviceSparseMatrixCSC}) where {Tv}
-    return SparseMatrixCSC(DeviceSparseMatrixCSR(A))
+function SparseMatrixCSC(A::Transpose{Tv, <:GenericSparseMatrixCSC}) where {Tv}
+    return SparseMatrixCSC(GenericSparseMatrixCSR(A))
 end
-function SparseMatrixCSC(A::Adjoint{Tv, <:DeviceSparseMatrixCSC}) where {Tv}
-    return SparseMatrixCSC(DeviceSparseMatrixCSR(A))
+function SparseMatrixCSC(A::Adjoint{Tv, <:GenericSparseMatrixCSC}) where {Tv}
+    return SparseMatrixCSC(GenericSparseMatrixCSR(A))
 end
 
-function DeviceSparseMatrixCSR(A::SparseMatrixCSC)
+function GenericSparseMatrixCSR(A::SparseMatrixCSC)
     # TODO: Implement a direct CSC to CSR conversion without going through transposition
     At = transpose(A)
     At_sparse = transpose(SparseMatrixCSC(At))
-    return DeviceSparseMatrixCSR(At_sparse)
+    return GenericSparseMatrixCSR(At_sparse)
 end
 
-function SparseMatrixCSC(A::DeviceSparseMatrixCSR)
+function SparseMatrixCSC(A::GenericSparseMatrixCSR)
     # Convert CSR to CSC by creating transposed CSC and then transposing back
     At_csc =
         SparseMatrixCSC(A.n, A.m, collect(A.rowptr), collect(A.colval), collect(A.nzval))
     return SparseMatrixCSC(transpose(At_csc))
 end
-function SparseMatrixCSC(A::Transpose{Tv, <:DeviceSparseMatrixCSR}) where {Tv}
+function SparseMatrixCSC(A::Transpose{Tv, <:GenericSparseMatrixCSR}) where {Tv}
     At = A.parent
     return SparseMatrixCSC(At.n, At.m, collect(At.rowptr), collect(At.colval), collect(At.nzval))
 end
-function SparseMatrixCSC(A::Adjoint{Tv, <:DeviceSparseMatrixCSR}) where {Tv}
+function SparseMatrixCSC(A::Adjoint{Tv, <:GenericSparseMatrixCSR}) where {Tv}
     At = A.parent
     return SparseMatrixCSC(
         size(A, 1),
@@ -49,13 +49,13 @@ function SparseMatrixCSC(A::Adjoint{Tv, <:DeviceSparseMatrixCSR}) where {Tv}
     )
 end
 
-function DeviceSparseMatrixCOO(A::SparseMatrixCSC)
+function GenericSparseMatrixCOO(A::SparseMatrixCSC)
     m, n = size(A)
     rows, cols, vals = findnz(A)
-    return DeviceSparseMatrixCOO(m, n, rows, cols, vals)
+    return GenericSparseMatrixCOO(m, n, rows, cols, vals)
 end
 
-function SparseMatrixCSC(A::DeviceSparseMatrixCOO)
+function SparseMatrixCSC(A::GenericSparseMatrixCOO)
     m, n = size(A)
     rowind = collect(A.rowind)
     colind = collect(A.colind)
@@ -63,14 +63,14 @@ function SparseMatrixCSC(A::DeviceSparseMatrixCOO)
 
     return sparse(rowind, colind, nzval, m, n)
 end
-SparseMatrixCSC(A::Transpose{Tv, <:DeviceSparseMatrixCOO}) where {Tv} = SparseMatrixCSC(
+SparseMatrixCSC(A::Transpose{Tv, <:GenericSparseMatrixCOO}) where {Tv} = SparseMatrixCSC(
     size(A, 1),
     size(A, 2),
     collect(A.parent.colind),
     collect(A.parent.rowind),
     collect(A.parent.nzval),
 )
-SparseMatrixCSC(A::Adjoint{Tv, <:DeviceSparseMatrixCOO}) where {Tv} = SparseMatrixCSC(
+SparseMatrixCSC(A::Adjoint{Tv, <:GenericSparseMatrixCOO}) where {Tv} = SparseMatrixCSC(
     size(A, 1),
     size(A, 2),
     collect(A.parent.colind),
@@ -82,18 +82,18 @@ SparseMatrixCSC(A::Adjoint{Tv, <:DeviceSparseMatrixCOO}) where {Tv} = SparseMatr
 # CSC ↔ CSR Conversions
 # ============================================================================
 
-DeviceSparseMatrixCSC(A::DeviceSparseMatrixCSR) =
-    DeviceSparseMatrixCSC(DeviceSparseMatrixCOO(A))
-DeviceSparseMatrixCSC(A::Transpose{Tv, <:DeviceSparseMatrixCSR}) where {Tv} =
-    DeviceSparseMatrixCSC(
+GenericSparseMatrixCSC(A::GenericSparseMatrixCSR) =
+    GenericSparseMatrixCSC(GenericSparseMatrixCOO(A))
+GenericSparseMatrixCSC(A::Transpose{Tv, <:GenericSparseMatrixCSR}) where {Tv} =
+    GenericSparseMatrixCSC(
     size(A, 1),
     size(A, 2),
     A.parent.rowptr,
     A.parent.colval,
     A.parent.nzval,
 )
-DeviceSparseMatrixCSC(A::Adjoint{Tv, <:DeviceSparseMatrixCSR}) where {Tv} =
-    DeviceSparseMatrixCSC(
+GenericSparseMatrixCSC(A::Adjoint{Tv, <:GenericSparseMatrixCSR}) where {Tv} =
+    GenericSparseMatrixCSC(
     size(A, 1),
     size(A, 2),
     A.parent.rowptr,
@@ -101,19 +101,19 @@ DeviceSparseMatrixCSC(A::Adjoint{Tv, <:DeviceSparseMatrixCSR}) where {Tv} =
     conj.(A.parent.nzval),
 )
 
-DeviceSparseMatrixCSR(A::DeviceSparseMatrixCSC) =
-    DeviceSparseMatrixCSR(DeviceSparseMatrixCOO(A))
-function DeviceSparseMatrixCSR(
-        A::Transpose{Tv, <:Union{<:SparseMatrixCSC, <:DeviceSparseMatrixCSC}},
+GenericSparseMatrixCSR(A::GenericSparseMatrixCSC) =
+    GenericSparseMatrixCSR(GenericSparseMatrixCOO(A))
+function GenericSparseMatrixCSR(
+        A::Transpose{Tv, <:Union{<:SparseMatrixCSC, <:GenericSparseMatrixCSC}},
     ) where {Tv}
     At = A.parent
-    return DeviceSparseMatrixCSR(size(A, 1), size(A, 2), At.colptr, rowvals(At), nonzeros(At))
+    return GenericSparseMatrixCSR(size(A, 1), size(A, 2), At.colptr, rowvals(At), nonzeros(At))
 end
-function DeviceSparseMatrixCSR(
-        A::Adjoint{Tv, <:Union{<:SparseMatrixCSC, <:DeviceSparseMatrixCSC}},
+function GenericSparseMatrixCSR(
+        A::Adjoint{Tv, <:Union{<:SparseMatrixCSC, <:GenericSparseMatrixCSC}},
     ) where {Tv}
     At = A.parent
-    return DeviceSparseMatrixCSR(
+    return GenericSparseMatrixCSR(
         size(A, 1),
         size(A, 2),
         At.colptr,
@@ -126,7 +126,7 @@ end
 # CSC ↔ COO Conversions
 # ============================================================================
 
-function DeviceSparseMatrixCOO(A::DeviceSparseMatrixCSC{Tv, Ti}) where {Tv, Ti}
+function GenericSparseMatrixCOO(A::GenericSparseMatrixCSC{Tv, Ti}) where {Tv, Ti}
     m, n = size(A)
     nnz_count = nnz(A)
 
@@ -141,10 +141,10 @@ function DeviceSparseMatrixCOO(A::DeviceSparseMatrixCSC{Tv, Ti}) where {Tv, Ti}
     kernel! = kernel_csc_to_coo!(backend)
     kernel!(rowind, colind, nzval, A.colptr, A.rowval, A.nzval; ndrange = (n,))
 
-    return DeviceSparseMatrixCOO(m, n, rowind, colind, nzval)
+    return GenericSparseMatrixCOO(m, n, rowind, colind, nzval)
 end
 
-function DeviceSparseMatrixCSC(A::DeviceSparseMatrixCOO{Tv, Ti}) where {Tv, Ti}
+function GenericSparseMatrixCSC(A::GenericSparseMatrixCOO{Tv, Ti}) where {Tv, Ti}
     m, n = size(A)
     nnz_count = nnz(A)
 
@@ -175,13 +175,13 @@ function DeviceSparseMatrixCSC(A::DeviceSparseMatrixCOO{Tv, Ti}) where {Tv, Ti}
     colptr[1:n] .= _searchsortedfirst_AK(colind_sorted, col_indices)
     @allowscalar colptr[n + 1] = Ti(nnz_count + 1)
 
-    return DeviceSparseMatrixCSC(m, n, colptr, rowind_sorted, nzval_sorted)
+    return GenericSparseMatrixCSC(m, n, colptr, rowind_sorted, nzval_sorted)
 end
 
 # Transpose and Adjoint conversions for COO to CSC
-DeviceSparseMatrixCSC(A::Transpose{Tv, <:DeviceSparseMatrixCOO}) where {Tv} =
-    DeviceSparseMatrixCSC(
-    DeviceSparseMatrixCOO(
+GenericSparseMatrixCSC(A::Transpose{Tv, <:GenericSparseMatrixCOO}) where {Tv} =
+    GenericSparseMatrixCSC(
+    GenericSparseMatrixCOO(
         size(A, 1),
         size(A, 2),
         A.parent.colind,
@@ -190,9 +190,9 @@ DeviceSparseMatrixCSC(A::Transpose{Tv, <:DeviceSparseMatrixCOO}) where {Tv} =
     )
 )
 
-DeviceSparseMatrixCSC(A::Adjoint{Tv, <:DeviceSparseMatrixCOO}) where {Tv} =
-    DeviceSparseMatrixCSC(
-    DeviceSparseMatrixCOO(
+GenericSparseMatrixCSC(A::Adjoint{Tv, <:GenericSparseMatrixCOO}) where {Tv} =
+    GenericSparseMatrixCSC(
+    GenericSparseMatrixCOO(
         size(A, 1),
         size(A, 2),
         A.parent.colind,
@@ -205,7 +205,7 @@ DeviceSparseMatrixCSC(A::Adjoint{Tv, <:DeviceSparseMatrixCOO}) where {Tv} =
 # CSR ↔ COO Conversions
 # ============================================================================
 
-function DeviceSparseMatrixCOO(A::DeviceSparseMatrixCSR{Tv, Ti}) where {Tv, Ti}
+function GenericSparseMatrixCOO(A::GenericSparseMatrixCSR{Tv, Ti}) where {Tv, Ti}
     m, n = size(A)
     nnz_count = nnz(A)
 
@@ -220,10 +220,10 @@ function DeviceSparseMatrixCOO(A::DeviceSparseMatrixCSR{Tv, Ti}) where {Tv, Ti}
     kernel! = kernel_csr_to_coo!(backend)
     kernel!(rowind, colind, nzval, A.rowptr, A.colval, A.nzval; ndrange = (m,))
 
-    return DeviceSparseMatrixCOO(m, n, rowind, colind, nzval)
+    return GenericSparseMatrixCOO(m, n, rowind, colind, nzval)
 end
 
-function DeviceSparseMatrixCSR(A::DeviceSparseMatrixCOO{Tv, Ti}) where {Tv, Ti}
+function GenericSparseMatrixCSR(A::GenericSparseMatrixCOO{Tv, Ti}) where {Tv, Ti}
     m, n = size(A)
     nnz_count = nnz(A)
 
@@ -254,5 +254,5 @@ function DeviceSparseMatrixCSR(A::DeviceSparseMatrixCOO{Tv, Ti}) where {Tv, Ti}
     rowptr[1:m] .= _searchsortedfirst_AK(rowind_sorted, row_indices)
     @allowscalar rowptr[m + 1] = Ti(nnz_count + 1)
 
-    return DeviceSparseMatrixCSR(m, n, rowptr, colind_sorted, nzval_sorted)
+    return GenericSparseMatrixCSR(m, n, rowptr, colind_sorted, nzval_sorted)
 end

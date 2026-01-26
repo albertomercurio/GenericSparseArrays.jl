@@ -21,7 +21,7 @@ function benchmark_vector_sum!(
     )
     # Create sparse vector with 1% density
     sv = sprand(T, N, 0.01)
-    dsv = adapt(array_constructor, DeviceSparseVector(sv))
+    dsv = adapt(array_constructor, GenericSparseVector(sv))
 
     # Level 3: Specific operation (will be plotted together)
     SUITE["Sparse Vector"][array_type_name]["Sum"] = @benchmarkable begin
@@ -55,7 +55,7 @@ function benchmark_vector_sparse_dense_dot!(
     )
     # Create sparse vector with 1% density
     sv = sprand(T, N, 0.01)
-    dsv = adapt(array_constructor, DeviceSparseVector(sv))
+    dsv = adapt(array_constructor, GenericSparseVector(sv))
 
     # Create dense vector
     dense_vec = adapt(array_constructor, randn(T, N))

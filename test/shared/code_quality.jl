@@ -10,15 +10,15 @@ function shared_test_vector_quality_conversion(op, T; kwargs...)
     sv = SparseVector(10, Int[], T[])
     sv2 = sparsevec([3], [T(2.5)], 8)
 
-    # Test conversion SparseVector <-> DeviceSparseVector
-    dsv = adapt(op, DeviceSparseVector(sv))
+    # Test conversion SparseVector <-> GenericSparseVector
+    dsv = adapt(op, GenericSparseVector(sv))
     size(dsv)
     length(dsv)
     nnz(dsv)
     collect(nonzeros(dsv))
     collect(nonzeroinds(dsv))
 
-    dsv2 = adapt(op, DeviceSparseVector(sv2))
+    dsv2 = adapt(op, GenericSparseVector(sv2))
     size(dsv2)
     length(dsv2)
     nnz(dsv2)
@@ -32,7 +32,7 @@ end
 function shared_test_vector_quality_linearalgebra(op, T; kwargs...)
     v = sprand(T, 1000, 0.01)
     y = rand(T, 1000)
-    dv = adapt(op, DeviceSparseVector(v))
+    dv = adapt(op, GenericSparseVector(v))
     dy = op(y)
 
     sum(dv)
@@ -50,7 +50,7 @@ end
 
 function shared_test_vector_quality_scalar_operations(op, T; kwargs...)
     v = sprand(T, 100, 0.3)
-    dv = adapt(op, DeviceSparseVector(v))
+    dv = adapt(op, GenericSparseVector(v))
 
     α = T <: Complex ? T(2.0 + 1.0im) : (T <: Integer ? T(2) : T(2.5))
 
@@ -78,7 +78,7 @@ function shared_test_vector_quality_unary_operations(op, T; kwargs...)
     end
 
     v = sprand(T, 80, 0.4)
-    dv = adapt(op, DeviceSparseVector(v))
+    dv = adapt(op, GenericSparseVector(v))
 
     # Test unary plus (inherited from AbstractArray)
     pos_v = +dv
@@ -125,7 +125,7 @@ function shared_test_vector_quality_norms(op, T; kwargs...)
     end
 
     v = sprand(T, 50, 0.5)
-    dv = adapt(op, DeviceSparseVector(v))
+    dv = adapt(op, GenericSparseVector(v))
 
     # Test different norms
     norm2 = norm(dv)
@@ -166,13 +166,13 @@ function shared_test_matrix_csc_quality_conversion(op, T; kwargs...)
     vals = T.([1.0, 2.0, 3.0])
     B = sparse(rows, cols, vals, 2, 2)
 
-    dA = adapt(op, DeviceSparseMatrixCSC(A))
+    dA = adapt(op, GenericSparseMatrixCSC(A))
     size(dA)
     length(dA)
     nnz(dA)
     collect(nonzeros(dA))
 
-    dB = adapt(op, DeviceSparseMatrixCSC(B))
+    dB = adapt(op, GenericSparseMatrixCSC(B))
     size(dB)
     length(dB)
     nnz(dB)
@@ -186,7 +186,7 @@ end
 
 function shared_test_matrix_csc_quality_scalar_operations(op, T; kwargs...)
     A = sprand(T, 50, 40, 0.1)
-    dA = adapt(op, DeviceSparseMatrixCSC(A))
+    dA = adapt(op, GenericSparseMatrixCSC(A))
 
     α = T <: Complex ? T(1.5 - 0.5im) : (T <: Integer ? T(2) : T(2.0))
 
@@ -214,7 +214,7 @@ function shared_test_matrix_csc_quality_unary_operations(op, T; kwargs...)
     end
 
     A = sprand(T, 30, 25, 0.15)
-    dA = adapt(op, DeviceSparseMatrixCSC(A))
+    dA = adapt(op, GenericSparseMatrixCSC(A))
 
     # Test unary plus
     pos_A = +dA
@@ -259,7 +259,7 @@ function shared_test_matrix_csc_quality_uniformscaling(op, T; kwargs...)
     end
 
     A = sprand(T, 20, 20, 0.2)
-    dA = adapt(op, DeviceSparseMatrixCSC(A))
+    dA = adapt(op, GenericSparseMatrixCSC(A))
 
     # Test A * I (identity)
     result_I = dA * I
@@ -282,7 +282,7 @@ end
 
 function shared_test_matrix_csc_quality_basic_linearalgebra(op, T; kwargs...)
     A = sprand(T, 1000, 1000, 0.01)
-    dA = adapt(op, DeviceSparseMatrixCSC(A))
+    dA = adapt(op, GenericSparseMatrixCSC(A))
 
     sum(dA)
 
@@ -311,7 +311,7 @@ function shared_test_matrix_csc_quality_spmv_spmm(op, T; kwargs...)
     B = rand(T, dims_B...)
     b = rand(T, 80)
 
-    dA = adapt(op, DeviceSparseMatrixCSC(A))
+    dA = adapt(op, GenericSparseMatrixCSC(A))
     dB = op(B)
     db = op(b)
 
@@ -340,8 +340,8 @@ function shared_test_matrix_csr_quality_conversion(op, T; kwargs...)
 
     # Test CSR conversion
     B_csr = SparseMatrixCSC(transpose(B))  # Get the CSR storage pattern
-    dB = adapt(op, DeviceSparseMatrixCSR(transpose(B_csr)))
-    dB2 = adapt(op, DeviceSparseMatrixCSR(B)) # Directly from CSC should also work
+    dB = adapt(op, GenericSparseMatrixCSR(transpose(B_csr)))
+    dB2 = adapt(op, GenericSparseMatrixCSR(B)) # Directly from CSC should also work
     size(dB)
     length(dB)
     nnz(dB)
@@ -358,7 +358,7 @@ function shared_test_matrix_csr_quality_basic_linearalgebra(op, T; kwargs...)
     A = sprand(T, 1000, 1000, 0.01)
     # Convert to CSR storage pattern
     A_csr = SparseMatrixCSC(transpose(A))
-    dA = adapt(op, DeviceSparseMatrixCSR(transpose(A_csr)))
+    dA = adapt(op, GenericSparseMatrixCSR(transpose(A_csr)))
 
     sum(dA)
 
@@ -389,7 +389,7 @@ function shared_test_matrix_csr_quality_spmv(op, T; kwargs...)
 
     # Convert to CSR storage pattern
     A_csr = SparseMatrixCSC(transpose(A))
-    dA = adapt(op, DeviceSparseMatrixCSR(transpose(A_csr)))
+    dA = adapt(op, GenericSparseMatrixCSR(transpose(A_csr)))
     dB = op(B)
     db = op(b)
 
@@ -402,7 +402,7 @@ end
 
 function shared_test_matrix_csr_quality_scalar_operations(op, T; kwargs...)
     A = sprand(T, 40, 30, 0.1)
-    dA = adapt(op, DeviceSparseMatrixCSR(A))
+    dA = adapt(op, GenericSparseMatrixCSR(A))
 
     α = T <: Complex ? T(1.0 + 2.0im) : (T <: Integer ? T(2) : T(1.5))
 
@@ -430,7 +430,7 @@ function shared_test_matrix_csr_quality_unary_operations(op, T; kwargs...)
     end
 
     A = sprand(T, 25, 20, 0.15)
-    dA = adapt(op, DeviceSparseMatrixCSR(A))
+    dA = adapt(op, GenericSparseMatrixCSR(A))
 
     # Test unary plus
     pos_A = +dA
@@ -475,7 +475,7 @@ function shared_test_matrix_csr_quality_uniformscaling(op, T; kwargs...)
     end
 
     A = sprand(T, 15, 15, 0.2)
-    dA = adapt(op, DeviceSparseMatrixCSR(A))
+    dA = adapt(op, GenericSparseMatrixCSR(A))
 
     # Test A * I (identity)
     result_I = dA * I
@@ -513,7 +513,7 @@ function shared_test_matrix_coo_quality_conversion(op, T; kwargs...)
     B = sparse(rows, cols, vals, 2, 2)
 
     # Test COO conversion
-    dB = adapt(op, DeviceSparseMatrixCOO(B))
+    dB = adapt(op, GenericSparseMatrixCOO(B))
     size(dB)
     length(dB)
     nnz(dB)
@@ -525,7 +525,7 @@ end
 
 function shared_test_matrix_coo_quality_basic_linearalgebra(op, T; kwargs...)
     A = sprand(T, 1000, 1000, 0.01)
-    dA = adapt(op, DeviceSparseMatrixCOO(A))
+    dA = adapt(op, GenericSparseMatrixCOO(A))
 
     sum(dA)
 
@@ -554,7 +554,7 @@ function shared_test_matrix_coo_quality_spmv(op, T; kwargs...)
     B = rand(T, dims_B...)
     b = rand(T, 80)
 
-    dA = adapt(op, DeviceSparseMatrixCOO(A))
+    dA = adapt(op, GenericSparseMatrixCOO(A))
     dB = op(B)
     db = op(b)
 
@@ -567,7 +567,7 @@ end
 
 function shared_test_matrix_coo_quality_scalar_operations(op, T; kwargs...)
     A = sprand(T, 45, 35, 0.1)
-    dA = adapt(op, DeviceSparseMatrixCOO(A))
+    dA = adapt(op, GenericSparseMatrixCOO(A))
 
     α = T <: Complex ? T(2.0 + 1.5im) : (T <: Integer ? T(2) : T(1.8))
 
@@ -595,7 +595,7 @@ function shared_test_matrix_coo_quality_unary_operations(op, T; kwargs...)
     end
 
     A = sprand(T, 28, 22, 0.15)
-    dA = adapt(op, DeviceSparseMatrixCOO(A))
+    dA = adapt(op, GenericSparseMatrixCOO(A))
 
     # Test unary plus
     pos_A = +dA
@@ -640,7 +640,7 @@ function shared_test_matrix_coo_quality_uniformscaling(op, T; kwargs...)
     end
 
     A = sprand(T, 18, 18, 0.2)
-    dA = adapt(op, DeviceSparseMatrixCOO(A))
+    dA = adapt(op, GenericSparseMatrixCOO(A))
 
     # Test A * I (identity)
     result_I = dA * I
