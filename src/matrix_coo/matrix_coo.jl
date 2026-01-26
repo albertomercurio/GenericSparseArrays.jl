@@ -310,6 +310,216 @@ function _add_sparse_to_dense!(C::DenseMatrix, A::DeviceSparseMatrixCOO)
 end
 
 """
+    +(A::DeviceSparseMatrixCOO, B::DeviceSparseMatrixCOO)
+
+Add two sparse matrices in COO format. Both matrices must have the same dimensions
+and be on the same backend (device).
+
+The result is a COO matrix with entries from both A and B properly merged,
+with duplicate entries (same row and column) combined by summing their values.
+
+# Examples
+```jldoctest
+julia> using DeviceSparseArrays, SparseArrays
+
+julia> A = DeviceSparseMatrixCOO(sparse([1, 2], [1, 2], [1.0, 2.0], 2, 2));
+
+julia> B = DeviceSparseMatrixCOO(sparse([1, 2], [2, 1], [3.0, 4.0], 2, 2));
+
+julia> C = A + B;
+
+julia> collect(C)
+2×2 Matrix{Float64}:
+ 1.0  3.0
+ 4.0  2.0
+```
+"""
+function Base.:+(A::DeviceSparseMatrixCOO, B::DeviceSparseMatrixCOO)
+    size(A) == size(B) || throw(
+        DimensionMismatch(
+            "dimensions must match: A has dims $(size(A)), B has dims $(size(B))",
+        ),
+    )
+
+    backend_A = get_backend(A)
+    backend_B = get_backend(B)
+    backend_A == backend_B ||
+        throw(ArgumentError("Both matrices must have the same backend"))
+
+    m, n = size(A)
+    Ti = eltype(getrowind(A))
+    Tv = promote_type(eltype(nonzeros(A)), eltype(nonzeros(B)))
+
+    # Concatenate the coordinate arrays
+    nnz_A = nnz(A)
+    nnz_B = nnz(B)
+    nnz_concat = nnz_A + nnz_B
+
+    # Allocate concatenated arrays
+    rowind_concat = similar(getrowind(A), nnz_concat)
+    colind_concat = similar(getcolind(A), nnz_concat)
+    nzval_concat = similar(nonzeros(A), Tv, nnz_concat)
+
+    # Copy entries from A and B
+    rowind_concat[1:nnz_A] .= getrowind(A)
+    colind_concat[1:nnz_A] .= getcolind(A)
+    nzval_concat[1:nnz_A] .= nonzeros(A)
+    rowind_concat[(nnz_A+1):end] .= getrowind(B)
+    colind_concat[(nnz_A+1):end] .= getcolind(B)
+    nzval_concat[(nnz_A+1):end] .= nonzeros(B)
+
+    # Sort by (row, col) using keys similar to COO->CSC conversion
+    backend = backend_A
+    keys = similar(rowind_concat, Ti, nnz_concat)
+    kernel_make_keys! = kernel_make_csc_keys!(backend)
+    kernel_make_keys!(keys, rowind_concat, colind_concat, m; ndrange = (nnz_concat,))
+
+    # Sort using AcceleratedKernels
+    perm = _sortperm_AK(keys)
+
+    # Apply permutation to get sorted arrays
+    rowind_sorted = rowind_concat[perm]
+    colind_sorted = colind_concat[perm]
+    nzval_sorted = nzval_concat[perm]
+
+    # Mark unique entries (first occurrence of each (row, col) pair)
+    keep_mask = similar(rowind_sorted, Bool, nnz_concat)
+    kernel_mark! = kernel_mark_unique_coo!(backend)
+    kernel_mark!(keep_mask, rowind_sorted, colind_sorted, nnz_concat; ndrange = (nnz_concat,))
+
+    # Compute write indices using cumsum
+    write_indices = _cumsum_AK(keep_mask)
+    nnz_final = @allowscalar write_indices[nnz_concat]
+
+    # Allocate final arrays
+    rowind_C = similar(getrowind(A), nnz_final)
+    colind_C = similar(getcolind(A), nnz_final)
+    nzval_C = similar(nonzeros(A), Tv, nnz_final)
+
+    # Compact: merge duplicates by summing
+    kernel_compact! = kernel_compact_coo!(backend)
+    kernel_compact!(
+        rowind_C,
+        colind_C,
+        nzval_C,
+        rowind_sorted,
+        colind_sorted,
+        nzval_sorted,
+        write_indices,
+        nnz_concat;
+        ndrange = (nnz_concat,),
+    )
+
+    return DeviceSparseMatrixCOO(m, n, rowind_C, colind_C, nzval_C)
+end
+
+# Addition with transpose/adjoint support
+for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparseMatrixCOO)
+    for (wrapb, transb, conjb, unwrapb, whereT2) in trans_adj_wrappers(:DeviceSparseMatrixCOO)
+        # Skip the case where both are not transposed (already handled above)
+        (transa == false && transb == false) && continue
+        
+        TypeA = wrapa(:(T1))
+        TypeB = wrapb(:(T2))
+        
+        @eval function Base.:+(A::$TypeA, B::$TypeB) where {$(whereT1(:T1)),$(whereT2(:T2))}
+            size(A) == size(B) || throw(
+                DimensionMismatch(
+                    "dimensions must match: A has dims $(size(A)), B has dims $(size(B))",
+                ),
+            )
+            
+            _A = $(unwrapa(:A))
+            _B = $(unwrapb(:B))
+            
+            backend_A = get_backend(_A)
+            backend_B = get_backend(_B)
+            backend_A == backend_B ||
+                throw(ArgumentError("Both matrices must have the same backend"))
+            
+            m, n = size(A)
+            Ti = eltype(getrowind(_A))
+            Tv = promote_type(eltype(nonzeros(_A)), eltype(nonzeros(_B)))
+            
+            # For transposed COO, swap row and column indices
+            nnz_A = nnz(_A)
+            nnz_B = nnz(_B)
+            nnz_concat = nnz_A + nnz_B
+            
+            # Allocate concatenated arrays
+            rowind_concat = similar(getrowind(_A), nnz_concat)
+            colind_concat = similar(getcolind(_A), nnz_concat)
+            nzval_concat = similar(nonzeros(_A), Tv, nnz_concat)
+            
+            # Copy entries from A (potentially swapping row/col for transpose)
+            if $transa
+                rowind_concat[1:nnz_A] .= getcolind(_A)  # Swap for transpose
+                colind_concat[1:nnz_A] .= getrowind(_A)
+            else
+                rowind_concat[1:nnz_A] .= getrowind(_A)
+                colind_concat[1:nnz_A] .= getcolind(_A)
+            end
+            if $conja
+                nzval_concat[1:nnz_A] .= conj.(nonzeros(_A))
+            else
+                nzval_concat[1:nnz_A] .= nonzeros(_A)
+            end
+            
+            # Copy entries from B (potentially swapping row/col for transpose)
+            if $transb
+                rowind_concat[(nnz_A+1):end] .= getcolind(_B)  # Swap for transpose
+                colind_concat[(nnz_A+1):end] .= getrowind(_B)
+            else
+                rowind_concat[(nnz_A+1):end] .= getrowind(_B)
+                colind_concat[(nnz_A+1):end] .= getcolind(_B)
+            end
+            if $conjb
+                nzval_concat[(nnz_A+1):end] .= conj.(nonzeros(_B))
+            else
+                nzval_concat[(nnz_A+1):end] .= nonzeros(_B)
+            end
+            
+            # Sort and compact (same as before)
+            backend = backend_A
+            keys = similar(rowind_concat, Ti, nnz_concat)
+            kernel_make_keys! = kernel_make_csc_keys!(backend)
+            kernel_make_keys!(keys, rowind_concat, colind_concat, m; ndrange = (nnz_concat,))
+            
+            perm = _sortperm_AK(keys)
+            rowind_sorted = rowind_concat[perm]
+            colind_sorted = colind_concat[perm]
+            nzval_sorted = nzval_concat[perm]
+            
+            keep_mask = similar(rowind_sorted, Bool, nnz_concat)
+            kernel_mark! = kernel_mark_unique_coo!(backend)
+            kernel_mark!(keep_mask, rowind_sorted, colind_sorted, nnz_concat; ndrange = (nnz_concat,))
+            
+            write_indices = _cumsum_AK(keep_mask)
+            nnz_final = @allowscalar write_indices[nnz_concat]
+            
+            rowind_C = similar(getrowind(_A), nnz_final)
+            colind_C = similar(getcolind(_A), nnz_final)
+            nzval_C = similar(nonzeros(_A), Tv, nnz_final)
+            
+            kernel_compact! = kernel_compact_coo!(backend)
+            kernel_compact!(
+                rowind_C,
+                colind_C,
+                nzval_C,
+                rowind_sorted,
+                colind_sorted,
+                nzval_sorted,
+                write_indices,
+                nnz_concat;
+                ndrange = (nnz_concat,),
+            )
+            
+            return DeviceSparseMatrixCOO(m, n, rowind_C, colind_C, nzval_C)
+        end
+    end
+end
+
+"""
     kron(A::DeviceSparseMatrixCOO, B::DeviceSparseMatrixCOO)
 
 Compute the Kronecker product of two sparse matrices in COO format.

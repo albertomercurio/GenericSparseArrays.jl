@@ -302,6 +302,123 @@ function _add_sparse_to_dense!(C::DenseMatrix, A::DeviceSparseMatrixCSC)
 end
 
 """
+    +(A::DeviceSparseMatrixCSC, B::DeviceSparseMatrixCSC)
+
+Add two sparse matrices in CSC format. Both matrices must have the same dimensions
+and be on the same backend (device).
+
+# Examples
+```jldoctest
+julia> using DeviceSparseArrays, SparseArrays
+
+julia> A = DeviceSparseMatrixCSC(sparse([1, 2], [1, 2], [1.0, 2.0], 2, 2));
+
+julia> B = DeviceSparseMatrixCSC(sparse([1, 2], [2, 1], [3.0, 4.0], 2, 2));
+
+julia> C = A + B;
+
+julia> collect(C)
+2×2 Matrix{Float64}:
+ 1.0  3.0
+ 4.0  2.0
+```
+"""
+function Base.:+(A::DeviceSparseMatrixCSC, B::DeviceSparseMatrixCSC)
+    size(A) == size(B) || throw(
+        DimensionMismatch(
+            "dimensions must match: A has dims $(size(A)), B has dims $(size(B))",
+        ),
+    )
+
+    backend_A = get_backend(A)
+    backend_B = get_backend(B)
+    backend_A == backend_B ||
+        throw(ArgumentError("Both matrices must have the same backend"))
+
+    m, n = size(A)
+    Ti = eltype(getcolptr(A))
+    Tv = promote_type(eltype(nonzeros(A)), eltype(nonzeros(B)))
+
+    # Count non-zeros per column
+    nnz_per_col = similar(getcolptr(A), n)
+    fill!(nnz_per_col, zero(Ti))
+
+    backend = backend_A
+    kernel_count! = kernel_count_nnz_per_col_csc!(backend)
+    kernel_count!(
+        nnz_per_col,
+        getcolptr(A),
+        getrowval(A),
+        getcolptr(B),
+        getrowval(B);
+        ndrange = (n,),
+    )
+
+    # Build colptr for result matrix using cumsum
+    # colptr_C[i+1] = 1 + sum(nnz_per_col[1:i])
+    cumsum_nnz = _cumsum_AK(nnz_per_col)
+    colptr_C = similar(getcolptr(A), n + 1)
+    # Set colptr_C[2:end] to cumsum + 1
+    colptr_C[2:end] .= cumsum_nnz
+    colptr_C[2:end] .+= one(Ti)
+    # Set colptr_C[1] to 1 using broadcasting
+    colptr_C[1:1] .= one(Ti)
+
+    # Allocate result arrays
+    nnz_total =  @allowscalar colptr_C[n+1] - one(Ti)
+    rowval_C = similar(getrowval(A), nnz_total)
+    nzval_C = similar(nonzeros(A), Tv, nnz_total)
+
+    # Merge the two matrices
+    kernel_merge! = kernel_merge_csc!(backend)
+    kernel_merge!(
+        rowval_C,
+        nzval_C,
+        colptr_C,
+        getcolptr(A),
+        getrowval(A),
+        nonzeros(A),
+        getcolptr(B),
+        getrowval(B),
+        nonzeros(B),
+        Val{false}(),
+        Val{false}();
+        ndrange = (n,),
+    )
+
+    return DeviceSparseMatrixCSC(m, n, colptr_C, rowval_C, nzval_C)
+end
+
+# Addition with transpose/adjoint support
+for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparseMatrixCSC)
+    for (wrapb, transb, conjb, unwrapb, whereT2) in trans_adj_wrappers(:DeviceSparseMatrixCSC)
+        # Skip the case where both are not transposed (already handled above)
+        (transa == false && transb == false) && continue
+        
+        TypeA = wrapa(:(T1))
+        TypeB = wrapb(:(T2))
+        
+        @eval function Base.:+(A::$TypeA, B::$TypeB) where {$(whereT1(:T1)),$(whereT2(:T2))}
+            size(A) == size(B) || throw(
+                DimensionMismatch(
+                    "dimensions must match: A has dims $(size(A)), B has dims $(size(B))",
+                ),
+            )
+            
+            # Convert both to CSR (transpose/adjoint of CSC has CSR structure)
+            # and use existing CSR + CSR addition. The conversion methods
+            # already handle transpose/adjoint correctly.
+            A_csr = DeviceSparseMatrixCSR(A)
+            B_csr = DeviceSparseMatrixCSR(B)
+            result_csr = A_csr + B_csr
+            
+            # Convert back to CSC
+            return DeviceSparseMatrixCSC(result_csr)
+        end
+    end
+end
+
+"""
     kron(A::DeviceSparseMatrixCSC, B::DeviceSparseMatrixCSC)
 
 Compute the Kronecker product of two sparse matrices in CSC format.
