@@ -55,17 +55,3 @@ end
     i = @index(Global)
     keys[i] = rowind[i] * n + colind[i]
 end
-
-# Kernel for counting entries per column (for COO → CSC)
-@kernel inbounds=true function kernel_count_per_col!(colptr, @Const(colind_sorted))
-    i = @index(Global)
-    col = colind_sorted[i]
-    @atomic colptr[col+1] += 1
-end
-
-# Kernel for counting entries per row (for COO → CSR)
-@kernel inbounds=true function kernel_count_per_row!(rowptr, @Const(rowind_sorted))
-    i = @index(Global)
-    row = rowind_sorted[i]
-    @atomic rowptr[row+1] += 1
-end

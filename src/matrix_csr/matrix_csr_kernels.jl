@@ -246,3 +246,98 @@ end
         i_C += 1
     end
 end
+
+# Kernels for sparse-sparse matrix multiplication (SpGEMM) in CSR format
+
+# Kernel for counting non-zeros per row in C = A * B (CSR format)
+# For each row i of A, we find all columns that will have nonzeros in row i of C
+@kernel inbounds=true function kernel_count_nnz_spgemm_csr!(
+    nnz_per_row,
+    col_seen,
+    @Const(rowptr_A),
+    @Const(colval_A),
+    @Const(rowptr_B),
+    @Const(colval_B),
+    @Const(n),
+)
+    row_A = @index(Global)
+    
+    # For row row_A of A, find all columns that will have nonzeros in row row_A of C
+    # Use col_seen array to mark columns (needs to be cleared for each row)
+    offset = (row_A - 1) * n
+    
+    # Clear the seen flags for this row
+    for j = 1:n
+        col_seen[offset + j] = false
+    end
+    
+    count = 0
+    # For each nonzero A[row_A, k]
+    for idx_A = rowptr_A[row_A]:(rowptr_A[row_A + 1] - 1)
+        k = colval_A[idx_A]  # column index in A (row index in B)
+        
+        # Add all columns from row k of B
+        for idx_B = rowptr_B[k]:(rowptr_B[k + 1] - 1)
+            j = colval_B[idx_B]  # column index
+            if !col_seen[offset + j]
+                col_seen[offset + j] = true
+                count += 1
+            end
+        end
+    end
+    
+    nnz_per_row[row_A] = count
+end
+
+# Kernel for computing C = A * B (CSR format)
+@kernel inbounds=true function kernel_spgemm_csr!(
+    colval_C,
+    nzval_C,
+    @Const(rowptr_C),
+    @Const(rowptr_A),
+    @Const(colval_A),
+    @Const(nzval_A),
+    @Const(rowptr_B),
+    @Const(colval_B),
+    @Const(nzval_B),
+    col_accum,
+    col_flags,
+    @Const(n),
+    ::Val{CONJA},
+    ::Val{CONJB},
+) where {CONJA,CONJB}
+    row_A = @index(Global)
+    
+    # Offset for this row's workspace
+    offset = (row_A - 1) * n
+    
+    # Clear accumulator and flags for this row
+    for j = 1:n
+        col_accum[offset + j] = zero(eltype(nzval_C))
+        col_flags[offset + j] = false
+    end
+    
+    # Accumulate: C[row_A, :] = sum over k of A[row_A, k] * B[k, :]
+    for idx_A = rowptr_A[row_A]:(rowptr_A[row_A + 1] - 1)
+        k = colval_A[idx_A]
+        val_A = CONJA ? conj(nzval_A[idx_A]) : nzval_A[idx_A]
+        
+        # Add val_A * B[k, :] to accumulator
+        for idx_B = rowptr_B[k]:(rowptr_B[k + 1] - 1)
+            j = colval_B[idx_B]
+            val_B = CONJB ? conj(nzval_B[idx_B]) : nzval_B[idx_B]
+            col_accum[offset + j] += val_A * val_B
+            col_flags[offset + j] = true
+        end
+    end
+    
+    # Write out results in sorted order
+    write_pos = rowptr_C[row_A]
+    for j = 1:n
+        if col_flags[offset + j]
+            colval_C[write_pos] = j
+            nzval_C[write_pos] = col_accum[offset + j]
+            write_pos += 1
+        end
+    end
+end

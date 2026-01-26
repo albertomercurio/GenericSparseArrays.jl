@@ -282,24 +282,24 @@ function shared_test_linearalgebra_matrix_csc(
                 (identity, transpose, adjoint),
                 (identity, transpose, adjoint),
             )
-                
+
                 # Use rectangular matrices for identity+identity, square for transpose/adjoint
                 m, n = (op_A === identity && op_B === identity) ? (50, 40) : (30, 30)
                 dims_A = op_A === identity ? (m, n) : (n, m)
                 dims_B = op_B === identity ? (m, n) : (n, m)
-                
+
                 A = sprand(T, dims_A..., 0.1)
                 B = sprand(T, dims_B..., 0.15)
-                
+
                 dA = adapt(op, DeviceSparseMatrixCSC(A))
                 dB = adapt(op, DeviceSparseMatrixCSC(B))
-                
+
                 # Test sparse + sparse
                 result = op_A(dA) + op_B(dB)
                 expected = op_A(A) + op_B(B)
                 @test collect(result) ≈ Matrix(expected)
                 @test result isa DeviceSparseMatrixCSC
-                
+
                 # Additional tests only for identity + identity
                 if op_A === identity && op_B === identity
                     # Test with overlapping entries
@@ -316,6 +316,34 @@ function shared_test_linearalgebra_matrix_csc(
                     dB_wrong = adapt(op, DeviceSparseMatrixCSC(B_wrong))
                     @test_throws DimensionMismatch dA + dB_wrong
                 end
+            end
+        end
+    end
+
+    @testset "Sparse * Sparse Matrix Multiplication" begin
+        for T in (int_types..., float_types..., complex_types...)
+            for (op_A, op_B) in Iterators.product(
+                (identity, transpose, adjoint),
+                (identity, transpose, adjoint),
+            )
+
+                # Use rectangular matrices for identity*identity, square for transpose/adjoint
+                m, k, n =
+                    (op_A === identity && op_B === identity) ? (50, 40, 30) : (30, 30, 30)
+                dims_A = op_A === identity ? (m, k) : (k, m)
+                dims_B = op_B === identity ? (k, n) : (n, k)
+
+                A = sprand(T, dims_A..., 0.1)
+                B = sprand(T, dims_B..., 0.15)
+
+                dA = adapt(op, DeviceSparseMatrixCSC(A))
+                dB = adapt(op, DeviceSparseMatrixCSC(B))
+
+                # Test sparse * sparse
+                result = op_A(dA) * op_B(dB)
+                expected = op_A(A) * op_B(B)
+                @test collect(result) ≈ Matrix(expected)
+                @test result isa DeviceSparseMatrixCSC
             end
         end
     end

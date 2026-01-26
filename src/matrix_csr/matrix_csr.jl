@@ -389,27 +389,28 @@ end
 
 # Addition with transpose/adjoint support
 for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparseMatrixCSR)
-    for (wrapb, transb, conjb, unwrapb, whereT2) in trans_adj_wrappers(:DeviceSparseMatrixCSR)
+    for (wrapb, transb, conjb, unwrapb, whereT2) in
+        trans_adj_wrappers(:DeviceSparseMatrixCSR)
         # Skip the case where both are not transposed (already handled above)
         (transa == false && transb == false) && continue
-        
+
         TypeA = wrapa(:(T1))
         TypeB = wrapb(:(T2))
-        
+
         @eval function Base.:+(A::$TypeA, B::$TypeB) where {$(whereT1(:T1)),$(whereT2(:T2))}
             size(A) == size(B) || throw(
                 DimensionMismatch(
                     "dimensions must match: A has dims $(size(A)), B has dims $(size(B))",
                 ),
             )
-            
+
             # Convert both to CSC (transpose/adjoint of CSR has CSC structure)
             # and use existing CSC + CSC addition. The conversion methods
             # already handle transpose/adjoint correctly.
             A_csc = DeviceSparseMatrixCSC(A)
             B_csc = DeviceSparseMatrixCSC(B)
             result_csc = A_csc + B_csc
-            
+
             # Convert back to CSR
             return DeviceSparseMatrixCSR(result_csc)
         end
@@ -451,4 +452,142 @@ function LinearAlgebra.kron(A::DeviceSparseMatrixCSR, B::DeviceSparseMatrixCSR)
     B_coo = DeviceSparseMatrixCOO(B)
     C_coo = kron(A_coo, B_coo)
     return DeviceSparseMatrixCSR(C_coo)
+end
+
+"""
+    *(A::DeviceSparseMatrixCSR, B::DeviceSparseMatrixCSR)
+
+Multiply two sparse matrices in CSR format. Both matrices must have compatible dimensions
+(number of columns of A equals number of rows of B) and be on the same backend (device).
+
+The multiplication uses GPU-compatible kernels for efficient sparse-sparse matrix
+multiplication (SpGEMM).
+
+# Examples
+```jldoctest
+julia> using DeviceSparseArrays, SparseArrays
+
+julia> A = DeviceSparseMatrixCSR(DeviceSparseMatrixCOO(sparse([1, 2], [1, 2], [2.0, 3.0], 2, 2)));
+
+julia> B = DeviceSparseMatrixCSR(DeviceSparseMatrixCOO(sparse([1, 2], [1, 2], [4.0, 5.0], 2, 2)));
+
+julia> C = A * B;
+
+julia> collect(C)
+2×2 Matrix{Float64}:
+ 8.0   0.0
+ 0.0  15.0
+```
+"""
+function Base.:(*)(A::DeviceSparseMatrixCSR, B::DeviceSparseMatrixCSR)
+    size(A, 2) == size(B, 1) || throw(
+        DimensionMismatch(
+            "second dimension of A, $(size(A,2)), does not match first dimension of B, $(size(B,1))",
+        ),
+    )
+
+    backend_A = get_backend(A)
+    backend_B = get_backend(B)
+    backend_A == backend_B ||
+        throw(ArgumentError("Both matrices must have the same backend"))
+
+    m, k, n = size(A, 1), size(A, 2), size(B, 2)
+    Ti = eltype(getrowptr(A))
+    Tv = promote_type(eltype(nonzeros(A)), eltype(nonzeros(B)))
+    
+    backend = backend_A
+    
+    # Allocate workspace for counting (one flag per column per row of A)
+    col_seen = similar(nonzeros(A), Bool, m * n)
+    
+    # Count non-zeros per row of C
+    nnz_per_row = similar(getrowptr(A), m)
+    fill!(nnz_per_row, zero(Ti))
+    
+    kernel_count! = kernel_count_nnz_spgemm_csr!(backend)
+    kernel_count!(
+        nnz_per_row,
+        col_seen,
+        getrowptr(A),
+        getcolval(A),
+        getrowptr(B),
+        getcolval(B),
+        n;
+        ndrange = (m,),
+    )
+    
+    # Build rowptr for result matrix
+    cumsum_nnz = _cumsum_AK(nnz_per_row)
+    rowptr_C = similar(getrowptr(A), m + 1)
+    rowptr_C[2:end] .= cumsum_nnz
+    rowptr_C[2:end] .+= one(Ti)
+    rowptr_C[1:1] .= one(Ti)
+    
+    # Allocate result arrays
+    nnz_total = @allowscalar rowptr_C[m + 1] - one(Ti)
+    colval_C = similar(getcolval(A), nnz_total)
+    nzval_C = similar(nonzeros(A), Tv, nnz_total)
+    
+    # Allocate workspace for accumulation
+    col_accum = similar(nonzeros(A), Tv, m * n)
+    col_flags = similar(nonzeros(A), Bool, m * n)
+    
+    # Compute the product
+    kernel_mult! = kernel_spgemm_csr!(backend)
+    kernel_mult!(
+        colval_C,
+        nzval_C,
+        rowptr_C,
+        getrowptr(A),
+        getcolval(A),
+        nonzeros(A),
+        getrowptr(B),
+        getcolval(B),
+        nonzeros(B),
+        col_accum,
+        col_flags,
+        n,
+        Val{false}(),
+        Val{false}();
+        ndrange = (m,),
+    )
+    
+    return DeviceSparseMatrixCSR(m, n, rowptr_C, colval_C, nzval_C)
+end
+
+# Multiplication with transpose/adjoint support
+for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparseMatrixCSR)
+    for (wrapb, transb, conjb, unwrapb, whereT2) in
+        trans_adj_wrappers(:DeviceSparseMatrixCSR)
+        # Skip the case where both are not transposed (already handled above)
+        (transa == false && transb == false) && continue
+
+        TypeA = wrapa(:(T1))
+        TypeB = wrapb(:(T2))
+
+        @eval function Base.:(*)(
+            A::$TypeA,
+            B::$TypeB,
+        ) where {$(whereT1(:T1)),$(whereT2(:T2))}
+            size(A, 2) == size(B, 1) || throw(
+                DimensionMismatch(
+                    "second dimension of A, $(size(A,2)), does not match first dimension of B, $(size(B,1))",
+                ),
+            )
+
+            backend_A = get_backend($(unwrapa(:A)))
+            backend_B = get_backend($(unwrapb(:B)))
+            backend_A == backend_B ||
+                throw(ArgumentError("Both matrices must have the same backend"))
+
+            # For transpose/adjoint, convert to CSC format (which is CSR transposed structurally)
+            # This follows the same pattern as addition with transpose/adjoint
+            A_csc = DeviceSparseMatrixCSC(A)
+            B_csc = DeviceSparseMatrixCSC(B)
+            result_csc = A_csc * B_csc
+            
+            # Convert back to CSR
+            return DeviceSparseMatrixCSR(result_csc)
+        end
+    end
 end

@@ -365,7 +365,7 @@ function Base.:+(A::DeviceSparseMatrixCSC, B::DeviceSparseMatrixCSC)
     colptr_C[1:1] .= one(Ti)
 
     # Allocate result arrays
-    nnz_total =  @allowscalar colptr_C[n+1] - one(Ti)
+    nnz_total = @allowscalar colptr_C[n+1] - one(Ti)
     rowval_C = similar(getrowval(A), nnz_total)
     nzval_C = similar(nonzeros(A), Tv, nnz_total)
 
@@ -391,27 +391,28 @@ end
 
 # Addition with transpose/adjoint support
 for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparseMatrixCSC)
-    for (wrapb, transb, conjb, unwrapb, whereT2) in trans_adj_wrappers(:DeviceSparseMatrixCSC)
+    for (wrapb, transb, conjb, unwrapb, whereT2) in
+        trans_adj_wrappers(:DeviceSparseMatrixCSC)
         # Skip the case where both are not transposed (already handled above)
         (transa == false && transb == false) && continue
-        
+
         TypeA = wrapa(:(T1))
         TypeB = wrapb(:(T2))
-        
+
         @eval function Base.:+(A::$TypeA, B::$TypeB) where {$(whereT1(:T1)),$(whereT2(:T2))}
             size(A) == size(B) || throw(
                 DimensionMismatch(
                     "dimensions must match: A has dims $(size(A)), B has dims $(size(B))",
                 ),
             )
-            
+
             # Convert both to CSR (transpose/adjoint of CSC has CSR structure)
             # and use existing CSR + CSR addition. The conversion methods
             # already handle transpose/adjoint correctly.
             A_csr = DeviceSparseMatrixCSR(A)
             B_csr = DeviceSparseMatrixCSR(B)
             result_csr = A_csr + B_csr
-            
+
             # Convert back to CSC
             return DeviceSparseMatrixCSC(result_csr)
         end
@@ -449,4 +450,145 @@ function LinearAlgebra.kron(A::DeviceSparseMatrixCSC, B::DeviceSparseMatrixCSC)
     B_coo = DeviceSparseMatrixCOO(B)
     C_coo = kron(A_coo, B_coo)
     return DeviceSparseMatrixCSC(C_coo)
+end
+
+"""
+    *(A::DeviceSparseMatrixCSC, B::DeviceSparseMatrixCSC)
+
+Multiply two sparse matrices in CSC format. Both matrices must have compatible dimensions
+(number of columns of A equals number of rows of B) and be on the same backend (device).
+
+The multiplication uses GPU-compatible kernels for efficient sparse-sparse matrix
+multiplication (SpGEMM).
+
+# Examples
+```jldoctest
+julia> using DeviceSparseArrays, SparseArrays
+
+julia> A = DeviceSparseMatrixCSC(sparse([1, 2], [1, 2], [2.0, 3.0], 2, 2));
+
+julia> B = DeviceSparseMatrixCSC(sparse([1, 2], [1, 2], [4.0, 5.0], 2, 2));
+
+julia> C = A * B;
+
+julia> collect(C)
+2×2 Matrix{Float64}:
+ 8.0   0.0
+ 0.0  15.0
+```
+"""
+function Base.:(*)(A::DeviceSparseMatrixCSC, B::DeviceSparseMatrixCSC)
+    size(A, 2) == size(B, 1) || throw(
+        DimensionMismatch(
+            "second dimension of A, $(size(A,2)), does not match first dimension of B, $(size(B,1))",
+        ),
+    )
+
+    backend_A = get_backend(A)
+    backend_B = get_backend(B)
+    backend_A == backend_B ||
+        throw(ArgumentError("Both matrices must have the same backend"))
+
+    m, k, n = size(A, 1), size(A, 2), size(B, 2)
+    Ti = eltype(getcolptr(A))
+    Tv = promote_type(eltype(nonzeros(A)), eltype(nonzeros(B)))
+    
+    backend = backend_A
+    
+    # Allocate workspace for counting (one flag per row per column of B)
+    row_seen = similar(nonzeros(A), Bool, m * n)
+    
+    # Count non-zeros per column of C
+    nnz_per_col = similar(getcolptr(A), n)
+    fill!(nnz_per_col, zero(Ti))
+    
+    kernel_count! = kernel_count_nnz_spgemm_csc!(backend)
+    kernel_count!(
+        nnz_per_col,
+        row_seen,
+        getcolptr(A),
+        getrowval(A),
+        getcolptr(B),
+        getrowval(B),
+        m;
+        ndrange = (n,),
+    )
+    
+    # Build colptr for result matrix
+    cumsum_nnz = _cumsum_AK(nnz_per_col)
+    colptr_C = similar(getcolptr(A), n + 1)
+    colptr_C[2:end] .= cumsum_nnz
+    colptr_C[2:end] .+= one(Ti)
+    colptr_C[1:1] .= one(Ti)
+    
+    # Allocate result arrays
+    nnz_total = @allowscalar colptr_C[n + 1] - one(Ti)
+    rowval_C = similar(getrowval(A), nnz_total)
+    nzval_C = similar(nonzeros(A), Tv, nnz_total)
+    
+    # Allocate workspace for accumulation
+    row_accum = similar(nonzeros(A), Tv, m * n)
+    row_flags = similar(nonzeros(A), Bool, m * n)
+    
+    # Compute the product
+    kernel_mult! = kernel_spgemm_csc!(backend)
+    kernel_mult!(
+        rowval_C,
+        nzval_C,
+        colptr_C,
+        getcolptr(A),
+        getrowval(A),
+        nonzeros(A),
+        getcolptr(B),
+        getrowval(B),
+        nonzeros(B),
+        row_accum,
+        row_flags,
+        m,
+        Val{false}(),
+        Val{false}();
+        ndrange = (n,),
+    )
+    
+    return DeviceSparseMatrixCSC(m, n, colptr_C, rowval_C, nzval_C)
+end
+
+# Multiplication with transpose/adjoint support  
+for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparseMatrixCSC)
+    for (wrapb, transb, conjb, unwrapb, whereT2) in
+        trans_adj_wrappers(:DeviceSparseMatrixCSC)
+        # Skip the case where both are not transposed (already handled above)
+        (transa == false && transb == false) && continue
+
+        TypeA = wrapa(:(T1))
+        TypeB = wrapb(:(T2))
+
+        @eval function Base.:(*)(
+            A::$TypeA,
+            B::$TypeB,
+        ) where {$(whereT1(:T1)),$(whereT2(:T2))}
+            size(A, 2) == size(B, 1) || throw(
+                DimensionMismatch(
+                    "second dimension of A, $(size(A,2)), does not match first dimension of B, $(size(B,1))",
+                ),
+            )
+
+            _A = $(unwrapa(:A))
+            _B = $(unwrapb(:B))
+            
+            backend_A = get_backend(_A)
+            backend_B = get_backend(_B)
+            backend_A == backend_B ||
+                throw(ArgumentError("Both matrices must have the same backend"))
+
+            # For transpose/adjoint, convert to CSR format (which is CSC transposed structurally)
+            # This follows the same pattern as addition with transpose/adjoint
+            A_csr = DeviceSparseMatrixCSR(A)
+            B_csr = DeviceSparseMatrixCSR(B)
+            result_csr = A_csr * B_csr
+            
+            # Convert back to CSC
+            return DeviceSparseMatrixCSC(result_csr)
+        end
+    end
 end
