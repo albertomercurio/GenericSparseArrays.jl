@@ -1,4 +1,4 @@
-name = "DeviceSparseArrays"
+name = "GenericSparseArrays"
 uuid = "da3fe0eb-88a8-4d14-ae1a-857c283e9c70"
 authors = ["Alberto Mercurio <alberto.mercurio96@gmail.com> and contributors"]
 version = "0.1.0"
@@ -15,7 +15,7 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 JLArrays = "27aeb0d3-9eb9-45fb-866b-73c2ecf80fcb"
 
 [extensions]
-DeviceSparseArraysJLArraysExt = "JLArrays"
+GenericSparseArraysJLArraysExt = "JLArrays"
 
 [compat]
 AcceleratedKernels = "0.4"

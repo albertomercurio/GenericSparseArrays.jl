@@ -1,56 +1,56 @@
 # Abstract sparse hierarchy and common aliases
 
 """
-    AbstractDeviceSparseArray{Tv,Ti,N} <: AbstractSparseArray{Tv,Ti,N}
+    AbstractGenericSparseArray{Tv,Ti,N} <: AbstractSparseArray{Tv,Ti,N}
 
 Supertype for sparse arrays that can have their underlying storage on various
 devices (CPU, GPU, accelerators). This package keeps the hierarchy backend-agnostic;
 dispatch is expected to leverage the concrete types of internal buffers (e.g. `Vector`,
 `CuArray`, etc.) rather than an explicit backend flag.
 """
-abstract type AbstractDeviceSparseArray{Tv, Ti, N} <: AbstractSparseArray{Tv, Ti, N} end
+abstract type AbstractGenericSparseArray{Tv, Ti, N} <: AbstractSparseArray{Tv, Ti, N} end
 
-const AbstractDeviceSparseVector{Tv, Ti} = AbstractDeviceSparseArray{Tv, Ti, 1}
-const AbstractDeviceSparseMatrix{Tv, Ti} = AbstractDeviceSparseArray{Tv, Ti, 2}
-const AbstractDeviceSparseVecOrMat{Tv, Ti} =
-    Union{AbstractDeviceSparseVector{Tv, Ti}, AbstractDeviceSparseMatrix{Tv, Ti}}
+const AbstractGenericSparseVector{Tv, Ti} = AbstractGenericSparseArray{Tv, Ti, 1}
+const AbstractGenericSparseMatrix{Tv, Ti} = AbstractGenericSparseArray{Tv, Ti, 2}
+const AbstractGenericSparseVecOrMat{Tv, Ti} =
+    Union{AbstractGenericSparseVector{Tv, Ti}, AbstractGenericSparseMatrix{Tv, Ti}}
 
-const AbstractDeviceSparseMatrixInclAdjointAndTranspose = Union{
-    AbstractDeviceSparseMatrix,
-    Adjoint{<:Any, <:AbstractDeviceSparseMatrix},
-    Transpose{<:Any, <:AbstractDeviceSparseMatrix},
+const AbstractGenericSparseMatrixInclAdjointAndTranspose = Union{
+    AbstractGenericSparseMatrix,
+    Adjoint{<:Any, <:AbstractGenericSparseMatrix},
+    Transpose{<:Any, <:AbstractGenericSparseMatrix},
 }
 
-Base.sum(A::AbstractDeviceSparseArray) = sum(nonzeros(A))
+Base.sum(A::AbstractGenericSparseArray) = sum(nonzeros(A))
 
-function LinearAlgebra.rmul!(A::AbstractDeviceSparseArray, x::Number)
+function LinearAlgebra.rmul!(A::AbstractGenericSparseArray, x::Number)
     rmul!(nonzeros(A), x)
     return A
 end
-function LinearAlgebra.lmul!(x::Number, A::AbstractDeviceSparseArray)
+function LinearAlgebra.lmul!(x::Number, A::AbstractGenericSparseArray)
     lmul!(x, nonzeros(A))
     return A
 end
 
-function LinearAlgebra.rdiv!(A::AbstractDeviceSparseArray, x::Number)
+function LinearAlgebra.rdiv!(A::AbstractGenericSparseArray, x::Number)
     rdiv!(nonzeros(A), x)
     return A
 end
 
-Base.:+(A::AbstractDeviceSparseArray) = copy(A)
+Base.:+(A::AbstractGenericSparseArray) = copy(A)
 
-Base.:*(A::AbstractDeviceSparseArray, J::UniformScaling) = A * J.λ
-Base.:*(J::UniformScaling, A::AbstractDeviceSparseArray) = J.λ * A
+Base.:*(A::AbstractGenericSparseArray, J::UniformScaling) = A * J.λ
+Base.:*(J::UniformScaling, A::AbstractGenericSparseArray) = J.λ * A
 
-SparseArrays.getnzval(A::AbstractDeviceSparseArray) = nonzeros(A)
-function SparseArrays.nnz(A::AbstractDeviceSparseArray)
+SparseArrays.getnzval(A::AbstractGenericSparseArray) = nonzeros(A)
+function SparseArrays.nnz(A::AbstractGenericSparseArray)
     return length(nonzeros(A))
 end
 
-KernelAbstractions.get_backend(A::AbstractDeviceSparseArray) = get_backend(nonzeros(A))
+KernelAbstractions.get_backend(A::AbstractGenericSparseArray) = get_backend(nonzeros(A))
 
-# called by `show(io, MIME("text/plain"), ::AbstractDeviceSparseMatrixInclAdjointAndTranspose)`
-function Base.print_array(io::IO, A::AbstractDeviceSparseMatrixInclAdjointAndTranspose)
+# called by `show(io, MIME("text/plain"), ::AbstractGenericSparseMatrixInclAdjointAndTranspose)`
+function Base.print_array(io::IO, A::AbstractGenericSparseMatrixInclAdjointAndTranspose)
     S = SparseMatrixCSC(A)
     return if max(size(S)...) < 16
         Base.print_matrix(io, S)
@@ -59,8 +59,8 @@ function Base.print_array(io::IO, A::AbstractDeviceSparseMatrixInclAdjointAndTra
     end
 end
 
-# Generic addition between AbstractDeviceSparseMatrix and DenseMatrix
-function Base.:+(A::AbstractDeviceSparseMatrix, B::DenseMatrix)
+# Generic addition between AbstractGenericSparseMatrix and DenseMatrix
+function Base.:+(A::AbstractGenericSparseMatrix, B::DenseMatrix)
     size(A) == size(B) || throw(
         DimensionMismatch(
             "dimensions must match: A has dims $(size(A)), B has dims $(size(B))",
@@ -81,7 +81,7 @@ function Base.:+(A::AbstractDeviceSparseMatrix, B::DenseMatrix)
     return C
 end
 
-Base.:+(B::DenseMatrix, A::AbstractDeviceSparseMatrix) = A + B
+Base.:+(B::DenseMatrix, A::AbstractGenericSparseMatrix) = A + B
 
 # Keep this at the end of the file
 trans_adj_wrappers(fmt) = (

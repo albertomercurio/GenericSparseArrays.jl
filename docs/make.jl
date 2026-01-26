@@ -1,23 +1,23 @@
-using DeviceSparseArrays
+using GenericSparseArrays
 using Documenter
 
 DocMeta.setdocmeta!(
-    DeviceSparseArrays,
+    GenericSparseArrays,
     :DocTestSetup,
-    :(using DeviceSparseArrays);
+    :(using GenericSparseArrays);
     recursive = true,
 )
 
 makedocs(;
-    modules = [DeviceSparseArrays],
+    modules = [GenericSparseArrays],
     authors = "Alberto Mercurio <alberto.mercurio96@gmail.com> and contributors",
-    sitename = "DeviceSparseArrays.jl",
+    sitename = "GenericSparseArrays.jl",
     format = Documenter.HTML(;
-        canonical = "https://albertomercurio.github.io/DeviceSparseArrays.jl",
+        canonical = "https://albertomercurio.github.io/GenericSparseArrays.jl",
         edit_link = "main",
         assets = String[],
     ),
     pages = ["Home" => "index.md", "API Reference" => "api.md"],
 )
 
-deploydocs(; repo = "github.com/albertomercurio/DeviceSparseArrays.jl", devbranch = "main")
+deploydocs(; repo = "github.com/albertomercurio/GenericSparseArrays.jl", devbranch = "main")

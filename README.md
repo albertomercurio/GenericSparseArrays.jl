@@ -1,17 +1,17 @@
-# DeviceSparseArrays
+# GenericSparseArrays
 
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://albertomercurio.github.io/DeviceSparseArrays.jl/stable/)
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://albertomercurio.github.io/DeviceSparseArrays.jl/dev/)
-[![Build Status](https://github.com/albertomercurio/DeviceSparseArrays.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/albertomercurio/DeviceSparseArrays.jl/actions/workflows/CI.yml?query=branch%3Amain)
-[![Coverage](https://codecov.io/gh/albertomercurio/DeviceSparseArrays.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/albertomercurio/DeviceSparseArrays.jl)
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://albertomercurio.github.io/GenericSparseArrays.jl/stable/)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://albertomercurio.github.io/GenericSparseArrays.jl/dev/)
+[![Build Status](https://github.com/albertomercurio/GenericSparseArrays.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/albertomercurio/GenericSparseArrays.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![Coverage](https://codecov.io/gh/albertomercurio/GenericSparseArrays.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/albertomercurio/GenericSparseArrays.jl)
 [![Aqua](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
-[![Benchmarks](https://github.com/albertomercurio/DeviceSparseArrays.jl/actions/workflows/Benchmarks.yml/badge.svg?branch=main)](https://albertomercurio.github.io/DeviceSparseArrays.jl/benchmarks/)
+[![Benchmarks](https://github.com/albertomercurio/GenericSparseArrays.jl/actions/workflows/Benchmarks.yml/badge.svg?branch=main)](https://albertomercurio.github.io/GenericSparseArrays.jl/benchmarks/)
 [![code style: runic][runic-img]][runic-url]
 
 [runic-img]: https://img.shields.io/badge/code_style-%E1%9A%B1%E1%9A%A2%E1%9A%BE%E1%9B%81%E1%9A%B2-black
 [runic-url]: https://github.com/fredrikekre/Runic.jl
 
-DeviceSparseArrays.jl is a Julia package that provides backend-agnostic sparse array types and operations for CPU, GPU, and other accelerators. It aims to offer a unified interface for sparse data structures that can seamlessly operate across different hardware backends. For example, a `DeviceSparseMatrixCSC` type could represent a sparse matrix stored in Compressed Sparse Column format, where the underlying data could reside in CPU, GPU, or any other memory type, dispatching specific implementations based on the target device. This allows users to write code that is portable and efficient across various hardware platforms without needing to change their code for different backends. The aim of the package is to support a wide range of different sparse formats (e.g., CSC, CSR, COO) as well as different backends like:
+GenericSparseArrays.jl is a Julia package that provides backend-agnostic sparse array types and operations for CPU, GPU, and other accelerators. It aims to offer a unified interface for sparse data structures that can seamlessly operate across different hardware backends. For example, a `GenericSparseMatrixCSC` type could represent a sparse matrix stored in Compressed Sparse Column format, where the underlying data could reside in CPU, GPU, or any other memory type, dispatching specific implementations based on the target device. This allows users to write code that is portable and efficient across various hardware platforms without needing to change their code for different backends. The aim of the package is to support a wide range of different sparse formats (e.g., CSC, CSR, COO) as well as different backends like:
 - CPU (using standard Julia arrays)
 - GPU (using [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl), [AMDGPU.jl](https://github.com/JuliaGPU/AMDGPU.jl), [oneAPI.jl](https://github.com/JuliaGPU/oneAPI.jl), [Metal.jl](https://github.com/JuliaGPU/Metal.jl), etc.)
 - [DistributedArrays.jl](https://github.com/JuliaParallel/DistributedArrays.jl) (for distributed computing)
@@ -28,7 +28,7 @@ The package aims to use [KernelAbstractions.jl](https://github.com/JuliaGPU/Kern
 You can install the package using Julia's package manager. In the Julia REPL, run:
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/albertomercurio/DeviceSparseArrays.jl")
+Pkg.add(url="https://github.com/albertomercurio/GenericSparseArrays.jl")
 ```
 
 ## Usage Examples
@@ -36,15 +36,15 @@ Pkg.add(url="https://github.com/albertomercurio/DeviceSparseArrays.jl")
 ### Basic Usage with CSC Matrices
 
 ```julia
-using DeviceSparseArrays
+using GenericSparseArrays
 using SparseArrays
 using LinearAlgebra
 
 # Create a 100x80 sparse matrix with 10% sparsity
 A_sparse = sprand(Float64, 100, 80, 0.1)
 
-# Convert to DeviceSparseMatrixCSC (CPU by default)
-A_device = DeviceSparseMatrixCSC(A_sparse)
+# Convert to GenericSparseMatrixCSC (CPU by default)
+A_device = GenericSparseMatrixCSC(A_sparse)
 
 # Create a vector for matrix-vector multiplication
 b = rand(Float64, 80)
@@ -86,7 +86,7 @@ c_reactant = A_reactant * b_reactant
 ```julia
 # Create a sparse matrix and convert to CSR format
 A_sparse = sprand(Float64, 100, 80, 0.1)  # 100x80 matrix with 10% sparsity
-A_csr = DeviceSparseMatrixCSR(A_sparse)
+A_csr = GenericSparseMatrixCSR(A_sparse)
 
 # Convert to different backends
 A_csr_cuda = adapt(CuArray, A_csr)

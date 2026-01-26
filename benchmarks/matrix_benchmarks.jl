@@ -23,9 +23,9 @@ function benchmark_matrix_vector_mul!(
     sm_csc_std = sprand(T, N, N, 0.01)
 
     # Convert to different formats
-    sm_csc = DeviceSparseMatrixCSC(sm_csc_std)
-    sm_csr = DeviceSparseMatrixCSR(sm_csc_std)
-    sm_coo = DeviceSparseMatrixCOO(sm_csc_std)
+    sm_csc = GenericSparseMatrixCSC(sm_csc_std)
+    sm_csr = GenericSparseMatrixCSR(sm_csc_std)
+    sm_coo = GenericSparseMatrixCOO(sm_csc_std)
 
     # Adapt to device
     dsm_csc = adapt(array_constructor, sm_csc)
@@ -83,9 +83,9 @@ function benchmark_matrix_matrix_mul!(
     sm_csc_std = sprand(T, N, N, 0.01)
 
     # Convert to different formats
-    sm_csc = DeviceSparseMatrixCSC(sm_csc_std)
-    sm_csr = DeviceSparseMatrixCSR(sm_csc_std)
-    sm_coo = DeviceSparseMatrixCOO(sm_csc_std)
+    sm_csc = GenericSparseMatrixCSC(sm_csc_std)
+    sm_csr = GenericSparseMatrixCSR(sm_csc_std)
+    sm_coo = GenericSparseMatrixCOO(sm_csc_std)
 
     # Adapt to device
     dsm_csc = adapt(array_constructor, sm_csc)
@@ -140,9 +140,9 @@ function benchmark_three_arg_dot!(
     sm_csc_std = sprand(T, N, N, 0.01)
 
     # Convert to different formats
-    sm_csc = DeviceSparseMatrixCSC(sm_csc_std)
-    sm_csr = DeviceSparseMatrixCSR(sm_csc_std)
-    sm_coo = DeviceSparseMatrixCOO(sm_csc_std)
+    sm_csc = GenericSparseMatrixCSC(sm_csc_std)
+    sm_csr = GenericSparseMatrixCSR(sm_csc_std)
+    sm_coo = GenericSparseMatrixCOO(sm_csc_std)
 
     # Adapt to device
     dsm_csc = adapt(array_constructor, sm_csc)
@@ -197,9 +197,9 @@ function benchmark_sparse_dense_add!(
     sm_csc_std = sprand(T, N, N, 0.01)
 
     # Convert to different formats
-    sm_csc = DeviceSparseMatrixCSC(sm_csc_std)
-    sm_csr = DeviceSparseMatrixCSR(sm_csc_std)
-    sm_coo = DeviceSparseMatrixCOO(sm_csc_std)
+    sm_csc = GenericSparseMatrixCSC(sm_csc_std)
+    sm_csr = GenericSparseMatrixCSR(sm_csc_std)
+    sm_coo = GenericSparseMatrixCOO(sm_csc_std)
 
     # Adapt to device
     dsm_csc = adapt(array_constructor, sm_csc)
@@ -254,12 +254,12 @@ function benchmark_sparse_sparse_add!(
     sm_b_csc_std = sprand(T, N, N, 0.01)
 
     # Convert to different formats
-    sm_a_csc = DeviceSparseMatrixCSC(sm_a_csc_std)
-    sm_b_csc = DeviceSparseMatrixCSC(sm_b_csc_std)
-    sm_a_csr = DeviceSparseMatrixCSR(sm_a_csc_std)
-    sm_b_csr = DeviceSparseMatrixCSR(sm_b_csc_std)
-    sm_a_coo = DeviceSparseMatrixCOO(sm_a_csc_std)
-    sm_b_coo = DeviceSparseMatrixCOO(sm_b_csc_std)
+    sm_a_csc = GenericSparseMatrixCSC(sm_a_csc_std)
+    sm_b_csc = GenericSparseMatrixCSC(sm_b_csc_std)
+    sm_a_csr = GenericSparseMatrixCSR(sm_a_csc_std)
+    sm_b_csr = GenericSparseMatrixCSR(sm_b_csc_std)
+    sm_a_coo = GenericSparseMatrixCOO(sm_a_csc_std)
+    sm_b_coo = GenericSparseMatrixCOO(sm_b_csc_std)
 
     # Adapt to device
     dsm_a_csc = adapt(array_constructor, sm_a_csc)
@@ -308,14 +308,14 @@ function benchmark_kron!(SUITE, array_constructor, array_type_name; N = 100, T =
     sm_b_std = sprand(T, N, N, 0.01)
 
     # Convert to different formats
-    sm_a_csc = DeviceSparseMatrixCSC(sm_a_std)
-    sm_b_csc = DeviceSparseMatrixCSC(sm_b_std)
+    sm_a_csc = GenericSparseMatrixCSC(sm_a_std)
+    sm_b_csc = GenericSparseMatrixCSC(sm_b_std)
 
-    sm_a_csr = DeviceSparseMatrixCSR(sm_a_std)
-    sm_b_csr = DeviceSparseMatrixCSR(sm_b_std)
+    sm_a_csr = GenericSparseMatrixCSR(sm_a_std)
+    sm_b_csr = GenericSparseMatrixCSR(sm_b_std)
 
-    sm_a_coo = DeviceSparseMatrixCOO(sm_a_std)
-    sm_b_coo = DeviceSparseMatrixCOO(sm_b_std)
+    sm_a_coo = GenericSparseMatrixCOO(sm_a_std)
+    sm_b_coo = GenericSparseMatrixCOO(sm_b_std)
 
     # Adapt to device
     dsm_a_csc = adapt(array_constructor, sm_a_csc)

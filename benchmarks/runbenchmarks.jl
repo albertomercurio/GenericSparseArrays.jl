@@ -1,7 +1,7 @@
 using BenchmarkTools
 using LinearAlgebra
 using SparseArrays
-using DeviceSparseArrays
+using GenericSparseArrays
 using Adapt
 using JLArrays
 using KernelAbstractions

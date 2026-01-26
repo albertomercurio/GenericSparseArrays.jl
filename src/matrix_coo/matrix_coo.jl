@@ -1,7 +1,7 @@
-# DeviceSparseMatrixCOO implementation
+# GenericSparseMatrixCOO implementation
 
 """
-    DeviceSparseMatrixCOO{Tv,Ti,RowIndT<:AbstractVector{Ti},ColIndT<:AbstractVector{Ti},NzValT<:AbstractVector{Tv}} <: AbstractDeviceSparseMatrix{Tv,Ti}
+    GenericSparseMatrixCOO{Tv,Ti,RowIndT<:AbstractVector{Ti},ColIndT<:AbstractVector{Ti},NzValT<:AbstractVector{Tv}} <: AbstractGenericSparseMatrix{Tv,Ti}
 
 Coordinate (COO) sparse matrix with generic storage vectors for row indices,
 column indices, and nonzero values. Buffer types (e.g. `Vector`, GPU array
@@ -14,20 +14,20 @@ types) enable dispatch on device characteristics.
 - `colind::ColIndT`      - column indices of stored entries
 - `nzval::NzValT`        - stored values
 """
-struct DeviceSparseMatrixCOO{
+struct GenericSparseMatrixCOO{
         Tv,
         Ti,
         RowIndT <: AbstractVector{Ti},
         ColIndT <: AbstractVector{Ti},
         NzValT <: AbstractVector{Tv},
-    } <: AbstractDeviceSparseMatrix{Tv, Ti}
+    } <: AbstractGenericSparseMatrix{Tv, Ti}
     m::Int
     n::Int
     rowind::RowIndT
     colind::ColIndT
     nzval::NzValT
 
-    function DeviceSparseMatrixCOO(
+    function GenericSparseMatrixCOO(
             m::Integer,
             n::Integer,
             rowind::RowIndT,
@@ -61,7 +61,7 @@ struct DeviceSparseMatrixCOO{
 end
 
 # Conversion from SparseMatrixCSC to COO
-function DeviceSparseMatrixCOO(A::SparseMatrixCSC{Tv, Ti}) where {Tv, Ti}
+function GenericSparseMatrixCOO(A::SparseMatrixCSC{Tv, Ti}) where {Tv, Ti}
     m, n = size(A)
     nnz_count = nnz(A)
 
@@ -79,10 +79,10 @@ function DeviceSparseMatrixCOO(A::SparseMatrixCSC{Tv, Ti}) where {Tv, Ti}
         end
     end
 
-    return DeviceSparseMatrixCOO(m, n, rowind, colind, nzval)
+    return GenericSparseMatrixCOO(m, n, rowind, colind, nzval)
 end
 
-Adapt.adapt_structure(to, A::DeviceSparseMatrixCOO) = DeviceSparseMatrixCOO(
+Adapt.adapt_structure(to, A::GenericSparseMatrixCOO) = GenericSparseMatrixCOO(
     A.m,
     A.n,
     Adapt.adapt_structure(to, A.rowind),
@@ -90,22 +90,22 @@ Adapt.adapt_structure(to, A::DeviceSparseMatrixCOO) = DeviceSparseMatrixCOO(
     Adapt.adapt_structure(to, A.nzval),
 )
 
-Base.size(A::DeviceSparseMatrixCOO) = (A.m, A.n)
-Base.length(A::DeviceSparseMatrixCOO) = A.m * A.n
-Base.copy(A::DeviceSparseMatrixCOO) =
-    DeviceSparseMatrixCOO(A.m, A.n, copy(A.rowind), copy(A.colind), copy(A.nzval))
+Base.size(A::GenericSparseMatrixCOO) = (A.m, A.n)
+Base.length(A::GenericSparseMatrixCOO) = A.m * A.n
+Base.copy(A::GenericSparseMatrixCOO) =
+    GenericSparseMatrixCOO(A.m, A.n, copy(A.rowind), copy(A.colind), copy(A.nzval))
 
-Base.collect(A::DeviceSparseMatrixCOO) = collect(SparseMatrixCSC(A))
+Base.collect(A::GenericSparseMatrixCOO) = collect(SparseMatrixCSC(A))
 
-function Base.zero(A::DeviceSparseMatrixCOO)
+function Base.zero(A::GenericSparseMatrixCOO)
     rowind = similar(A.rowind, 0)
     colind = similar(A.colind, 0)
     nzval = similar(A.nzval, 0)
-    return DeviceSparseMatrixCOO(A.m, A.n, rowind, colind, nzval)
+    return GenericSparseMatrixCOO(A.m, A.n, rowind, colind, nzval)
 end
 
-function Base.:(*)(α::Number, A::DeviceSparseMatrixCOO)
-    return DeviceSparseMatrixCOO(
+function Base.:(*)(α::Number, A::GenericSparseMatrixCOO)
+    return GenericSparseMatrixCOO(
         A.m,
         A.n,
         copy(getrowind(A)),
@@ -113,34 +113,34 @@ function Base.:(*)(α::Number, A::DeviceSparseMatrixCOO)
         α .* nonzeros(A),
     )
 end
-Base.:(*)(A::DeviceSparseMatrixCOO, α::Number) = α * A
-Base.:(/)(A::DeviceSparseMatrixCOO, α::Number) = (1 / α) * A
+Base.:(*)(A::GenericSparseMatrixCOO, α::Number) = α * A
+Base.:(/)(A::GenericSparseMatrixCOO, α::Number) = (1 / α) * A
 
-function Base.:-(A::DeviceSparseMatrixCOO)
-    return DeviceSparseMatrixCOO(A.m, A.n, copy(A.rowind), copy(A.colind), -A.nzval)
+function Base.:-(A::GenericSparseMatrixCOO)
+    return GenericSparseMatrixCOO(A.m, A.n, copy(A.rowind), copy(A.colind), -A.nzval)
 end
 
-Base.conj(A::DeviceSparseMatrixCOO{<:Real}) = A
-function Base.conj(A::DeviceSparseMatrixCOO{<:Complex})
-    return DeviceSparseMatrixCOO(A.m, A.n, copy(A.rowind), copy(A.colind), conj.(A.nzval))
+Base.conj(A::GenericSparseMatrixCOO{<:Real}) = A
+function Base.conj(A::GenericSparseMatrixCOO{<:Complex})
+    return GenericSparseMatrixCOO(A.m, A.n, copy(A.rowind), copy(A.colind), conj.(A.nzval))
 end
 
-Base.real(A::DeviceSparseMatrixCOO{<:Real}) = A
-function Base.real(A::DeviceSparseMatrixCOO{<:Complex})
-    return DeviceSparseMatrixCOO(A.m, A.n, copy(A.rowind), copy(A.colind), real.(A.nzval))
+Base.real(A::GenericSparseMatrixCOO{<:Real}) = A
+function Base.real(A::GenericSparseMatrixCOO{<:Complex})
+    return GenericSparseMatrixCOO(A.m, A.n, copy(A.rowind), copy(A.colind), real.(A.nzval))
 end
 
-Base.imag(A::DeviceSparseMatrixCOO{<:Real}) = zero(A)
-function Base.imag(A::DeviceSparseMatrixCOO{<:Complex})
-    return DeviceSparseMatrixCOO(A.m, A.n, copy(A.rowind), copy(A.colind), imag.(A.nzval))
+Base.imag(A::GenericSparseMatrixCOO{<:Real}) = zero(A)
+function Base.imag(A::GenericSparseMatrixCOO{<:Complex})
+    return GenericSparseMatrixCOO(A.m, A.n, copy(A.rowind), copy(A.colind), imag.(A.nzval))
 end
 
-SparseArrays.nonzeros(A::DeviceSparseMatrixCOO) = A.nzval
-getrowind(A::DeviceSparseMatrixCOO) = A.rowind
-getcolind(A::DeviceSparseMatrixCOO) = A.colind
-SparseArrays.getnzval(A::DeviceSparseMatrixCOO) = nonzeros(A)
+SparseArrays.nonzeros(A::GenericSparseMatrixCOO) = A.nzval
+getrowind(A::GenericSparseMatrixCOO) = A.rowind
+getcolind(A::GenericSparseMatrixCOO) = A.colind
+SparseArrays.getnzval(A::GenericSparseMatrixCOO) = nonzeros(A)
 
-function LinearAlgebra.tr(A::DeviceSparseMatrixCOO)
+function LinearAlgebra.tr(A::GenericSparseMatrixCOO)
     m, n = size(A)
     m == n || throw(DimensionMismatch("Matrix must be square to compute the trace."))
 
@@ -164,7 +164,7 @@ function LinearAlgebra.tr(A::DeviceSparseMatrixCOO)
 end
 
 # Matrix-Vector and Matrix-Matrix multiplication
-for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparseMatrixCOO)
+for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:GenericSparseMatrixCOO)
     for (wrapb, transb, conjb, unwrapb, whereT2) in trans_adj_wrappers(:DenseVecOrMat)
         TypeA = wrapa(:(T1))
         TypeB = wrapb(:(T2))
@@ -233,7 +233,7 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparse
 end
 
 # Three-argument dot product: dot(x, A, y) = x' * A * y
-for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparseMatrixCOO)
+for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:GenericSparseMatrixCOO)
     TypeA = wrapa(:(T1))
 
     kernel_dot! = transa ? :kernel_workgroup_dot_coo_T! : :kernel_workgroup_dot_coo_N!
@@ -298,8 +298,8 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparse
     end
 end
 
-# Helper function for adding DeviceSparseMatrixCOO to dense matrix
-function _add_sparse_to_dense!(C::DenseMatrix, A::DeviceSparseMatrixCOO)
+# Helper function for adding GenericSparseMatrixCOO to dense matrix
+function _add_sparse_to_dense!(C::DenseMatrix, A::GenericSparseMatrixCOO)
     backend = get_backend(A)
     nnz_val = nnz(A)
 
@@ -310,7 +310,7 @@ function _add_sparse_to_dense!(C::DenseMatrix, A::DeviceSparseMatrixCOO)
 end
 
 """
-    +(A::DeviceSparseMatrixCOO, B::DeviceSparseMatrixCOO)
+    +(A::GenericSparseMatrixCOO, B::GenericSparseMatrixCOO)
 
 Add two sparse matrices in COO format. Both matrices must have the same dimensions
 and be on the same backend (device).
@@ -320,11 +320,11 @@ with duplicate entries (same row and column) combined by summing their values.
 
 # Examples
 ```jldoctest
-julia> using DeviceSparseArrays, SparseArrays
+julia> using GenericSparseArrays, SparseArrays
 
-julia> A = DeviceSparseMatrixCOO(sparse([1, 2], [1, 2], [1.0, 2.0], 2, 2));
+julia> A = GenericSparseMatrixCOO(sparse([1, 2], [1, 2], [1.0, 2.0], 2, 2));
 
-julia> B = DeviceSparseMatrixCOO(sparse([1, 2], [2, 1], [3.0, 4.0], 2, 2));
+julia> B = GenericSparseMatrixCOO(sparse([1, 2], [2, 1], [3.0, 4.0], 2, 2));
 
 julia> C = A + B;
 
@@ -334,7 +334,7 @@ julia> collect(C)
  4.0  2.0
 ```
 """
-function Base.:+(A::DeviceSparseMatrixCOO, B::DeviceSparseMatrixCOO)
+function Base.:+(A::GenericSparseMatrixCOO, B::GenericSparseMatrixCOO)
     size(A) == size(B) || throw(
         DimensionMismatch(
             "dimensions must match: A has dims $(size(A)), B has dims $(size(B))",
@@ -416,13 +416,13 @@ function Base.:+(A::DeviceSparseMatrixCOO, B::DeviceSparseMatrixCOO)
         ndrange = (nnz_concat,),
     )
 
-    return DeviceSparseMatrixCOO(m, n, rowind_C, colind_C, nzval_C)
+    return GenericSparseMatrixCOO(m, n, rowind_C, colind_C, nzval_C)
 end
 
 # Addition with transpose/adjoint support
-for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparseMatrixCOO)
+for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:GenericSparseMatrixCOO)
     for (wrapb, transb, conjb, unwrapb, whereT2) in
-        trans_adj_wrappers(:DeviceSparseMatrixCOO)
+        trans_adj_wrappers(:GenericSparseMatrixCOO)
         # Skip the case where both are not transposed (already handled above)
         (transa == false && transb == false) && continue
 
@@ -533,13 +533,13 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparse
                 ndrange = (nnz_concat,),
             )
 
-            return DeviceSparseMatrixCOO(m, n, rowind_C, colind_C, nzval_C)
+            return GenericSparseMatrixCOO(m, n, rowind_C, colind_C, nzval_C)
         end
     end
 end
 
 """
-    kron(A::DeviceSparseMatrixCOO, B::DeviceSparseMatrixCOO)
+    kron(A::GenericSparseMatrixCOO, B::GenericSparseMatrixCOO)
 
 Compute the Kronecker product of two sparse matrices in COO format.
 
@@ -549,11 +549,11 @@ entire matrix `B`.
 
 # Examples
 ```jldoctest
-julia> using DeviceSparseArrays, SparseArrays
+julia> using GenericSparseArrays, SparseArrays
 
-julia> A = DeviceSparseMatrixCOO(sparse([1, 2], [1, 2], [1.0, 2.0], 2, 2));
+julia> A = GenericSparseMatrixCOO(sparse([1, 2], [1, 2], [1.0, 2.0], 2, 2));
 
-julia> B = DeviceSparseMatrixCOO(sparse([1, 2], [1, 2], [3.0, 4.0], 2, 2));
+julia> B = GenericSparseMatrixCOO(sparse([1, 2], [1, 2], [3.0, 4.0], 2, 2));
 
 julia> C = kron(A, B);
 
@@ -565,8 +565,8 @@ julia> nnz(C)
 ```
 """
 function LinearAlgebra.kron(
-        A::DeviceSparseMatrixCOO{Tv1, Ti1},
-        B::DeviceSparseMatrixCOO{Tv2, Ti2},
+        A::GenericSparseMatrixCOO{Tv1, Ti1},
+        B::GenericSparseMatrixCOO{Tv2, Ti2},
     ) where {Tv1, Ti1, Tv2, Ti2}
     # Result dimensions
     m_C = size(A, 1) * size(B, 1)
@@ -604,11 +604,11 @@ function LinearAlgebra.kron(
         ndrange = nnz_C,
     )
 
-    return DeviceSparseMatrixCOO(m_C, n_C, rowind_C, colind_C, nzval_C)
+    return GenericSparseMatrixCOO(m_C, n_C, rowind_C, colind_C, nzval_C)
 end
 
 """
-    *(A::DeviceSparseMatrixCOO, B::DeviceSparseMatrixCOO)
+    *(A::GenericSparseMatrixCOO, B::GenericSparseMatrixCOO)
 
 Multiply two sparse matrices in COO format. Both matrices must have compatible dimensions
 (number of columns of A equals number of rows of B) and be on the same backend (device).
@@ -619,11 +619,11 @@ transpose/adjoint since COO doesn't have an efficient direct multiplication algo
 
 # Examples
 ```jldoctest
-julia> using DeviceSparseArrays, SparseArrays
+julia> using GenericSparseArrays, SparseArrays
 
-julia> A = DeviceSparseMatrixCOO(sparse([1, 2], [1, 2], [2.0, 3.0], 2, 2));
+julia> A = GenericSparseMatrixCOO(sparse([1, 2], [1, 2], [2.0, 3.0], 2, 2));
 
-julia> B = DeviceSparseMatrixCOO(sparse([1, 2], [1, 2], [4.0, 5.0], 2, 2));
+julia> B = GenericSparseMatrixCOO(sparse([1, 2], [1, 2], [4.0, 5.0], 2, 2));
 
 julia> C = A * B;
 
@@ -633,7 +633,7 @@ julia> collect(C)
  0.0  15.0
 ```
 """
-function Base.:(*)(A::DeviceSparseMatrixCOO, B::DeviceSparseMatrixCOO)
+function Base.:(*)(A::GenericSparseMatrixCOO, B::GenericSparseMatrixCOO)
     size(A, 2) == size(B, 1) || throw(
         DimensionMismatch(
             "second dimension of A, $(size(A, 2)), does not match first dimension of B, $(size(B, 1))",
@@ -648,16 +648,16 @@ function Base.:(*)(A::DeviceSparseMatrixCOO, B::DeviceSparseMatrixCOO)
     # Convert to CSC, multiply, convert back to COO
     # This is acceptable as COO doesn't have an efficient direct multiplication algorithm
     # and CSC provides the sorted structure needed for efficient SpGEMM
-    A_csc = DeviceSparseMatrixCSC(A)
-    B_csc = DeviceSparseMatrixCSC(B)
+    A_csc = GenericSparseMatrixCSC(A)
+    B_csc = GenericSparseMatrixCSC(B)
     C_csc = A_csc * B_csc
-    return DeviceSparseMatrixCOO(C_csc)
+    return GenericSparseMatrixCOO(C_csc)
 end
 
 # Multiplication with transpose/adjoint support - all cases use the same approach
-for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparseMatrixCOO)
+for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:GenericSparseMatrixCOO)
     for (wrapb, transb, conjb, unwrapb, whereT2) in
-        trans_adj_wrappers(:DeviceSparseMatrixCOO)
+        trans_adj_wrappers(:GenericSparseMatrixCOO)
         # Skip the case where both are not transposed (already handled above)
         (transa == false && transb == false) && continue
 
@@ -682,10 +682,10 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparse
             # Convert to CSC (handles transpose/adjoint), multiply, convert back to COO
             # Same approach as the base case since COO doesn't have an efficient
             # direct multiplication algorithm
-            A_csc = DeviceSparseMatrixCSC(A)
-            B_csc = DeviceSparseMatrixCSC(B)
+            A_csc = GenericSparseMatrixCSC(A)
+            B_csc = GenericSparseMatrixCSC(B)
             C_csc = A_csc * B_csc
-            return DeviceSparseMatrixCOO(C_csc)
+            return GenericSparseMatrixCOO(C_csc)
         end
     end
 end

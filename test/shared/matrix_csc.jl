@@ -5,7 +5,7 @@ function shared_test_matrix_csc(
         float_types::Tuple,
         complex_types::Tuple,
     )
-    return @testset "DeviceSparseMatrixCSC $array_type" verbose = true begin
+    return @testset "GenericSparseMatrixCSC $array_type" verbose = true begin
         shared_test_conversion_matrix_csc(
             op,
             array_type,
@@ -37,22 +37,22 @@ function shared_test_conversion_matrix_csc(
         vals = float_types[end][1.0, 2.0, 3.0]
         B = sparse(rows, cols, vals, 2, 2)
 
-        # test only conversion SparseMatrixCSC <-> DeviceSparseMatrixCSC
+        # test only conversion SparseMatrixCSC <-> GenericSparseMatrixCSC
         if op === Array
-            dA = DeviceSparseMatrixCSC(A)
+            dA = GenericSparseMatrixCSC(A)
             @test size(dA) == (0, 0)
             @test length(dA) == 0
             @test collect(nonzeros(dA)) == float_types[end][]
             @test SparseMatrixCSC(dA) == A
         end
 
-        dA = adapt(op, DeviceSparseMatrixCSC(A))
+        dA = adapt(op, GenericSparseMatrixCSC(A))
         @test size(dA) == (0, 0)
         @test length(dA) == 0
         @test nnz(dA) == 0
         @test collect(nonzeros(dA)) == float_types[end][]
 
-        dB = adapt(op, DeviceSparseMatrixCSC(B))
+        dB = adapt(op, GenericSparseMatrixCSC(B))
         @test size(dB) == (2, 2)
         @test length(dB) == 4
         @test nnz(dB) == 3
@@ -61,7 +61,7 @@ function shared_test_conversion_matrix_csc(
         @test collect(getcolptr(dB)) == collect(getcolptr(B))
         @test SparseMatrixCSC(dB) == B
 
-        @test_throws ArgumentError DeviceSparseMatrixCSC(
+        @test_throws ArgumentError GenericSparseMatrixCSC(
             2,
             2,
             op(int_types[end][1, 3]),
@@ -81,7 +81,7 @@ function shared_test_linearalgebra_matrix_csc(
     @testset "Sum and Trace" begin
         for T in (int_types..., float_types..., complex_types...)
             A = sprand(T, 1000, 1000, 0.01)
-            dA = adapt(op, DeviceSparseMatrixCSC(A))
+            dA = adapt(op, GenericSparseMatrixCSC(A))
 
             @test sum(dA) ≈ sum(A)
 
@@ -102,7 +102,7 @@ function shared_test_linearalgebra_matrix_csc(
                 x = rand(T, size(op_A(A), 1))
                 y = rand(T, size(op_A(A), 2))
 
-                dA = adapt(op, DeviceSparseMatrixCSC(A))
+                dA = adapt(op, GenericSparseMatrixCSC(A))
                 dx = op(x)
                 dy = op(y)
 
@@ -117,7 +117,7 @@ function shared_test_linearalgebra_matrix_csc(
     @testset "Scalar Operations" begin
         for T in (int_types..., float_types..., complex_types...)
             A = sprand(T, 50, 40, 0.1)
-            dA = adapt(op, DeviceSparseMatrixCSC(A))
+            dA = adapt(op, GenericSparseMatrixCSC(A))
 
             α = T <: Complex ? T(1.5 - 0.5im) : (T <: Integer ? T(2) : T(2.0))
 
@@ -141,7 +141,7 @@ function shared_test_linearalgebra_matrix_csc(
     @testset "Unary Operations" begin
         for T in (float_types..., complex_types...)
             A = sprand(T, 30, 25, 0.15)
-            dA = adapt(op, DeviceSparseMatrixCSC(A))
+            dA = adapt(op, GenericSparseMatrixCSC(A))
 
             # Test unary plus
             pos_A = +dA
@@ -184,7 +184,7 @@ function shared_test_linearalgebra_matrix_csc(
     @testset "UniformScaling Multiplication" begin
         for T in (float_types..., complex_types...)
             A = sprand(T, 20, 20, 0.2)
-            dA = adapt(op, DeviceSparseMatrixCSC(A))
+            dA = adapt(op, GenericSparseMatrixCSC(A))
 
             # Test A * I (identity)
             result_I = dA * I
@@ -223,7 +223,7 @@ function shared_test_linearalgebra_matrix_csc(
                 c = op_A(A) * b
                 C = op_A(A) * op_B(B)
 
-                dA = adapt(op, DeviceSparseMatrixCSC(A))
+                dA = adapt(op, GenericSparseMatrixCSC(A))
 
                 # Matrix-Scalar multiplication
                 if T != Int32
@@ -257,7 +257,7 @@ function shared_test_linearalgebra_matrix_csc(
             A = sprand(T, m, n, 0.1)
             B = rand(T, m, n)
 
-            dA = adapt(op, DeviceSparseMatrixCSC(A))
+            dA = adapt(op, GenericSparseMatrixCSC(A))
             dB = op(B)
 
             # Test sparse + dense
@@ -291,29 +291,29 @@ function shared_test_linearalgebra_matrix_csc(
                 A = sprand(T, dims_A..., 0.1)
                 B = sprand(T, dims_B..., 0.15)
 
-                dA = adapt(op, DeviceSparseMatrixCSC(A))
-                dB = adapt(op, DeviceSparseMatrixCSC(B))
+                dA = adapt(op, GenericSparseMatrixCSC(A))
+                dB = adapt(op, GenericSparseMatrixCSC(B))
 
                 # Test sparse + sparse
                 result = op_A(dA) + op_B(dB)
                 expected = op_A(A) + op_B(B)
                 @test collect(result) ≈ Matrix(expected)
-                @test result isa DeviceSparseMatrixCSC
+                @test result isa GenericSparseMatrixCSC
 
                 # Additional tests only for identity + identity
                 if op_A === identity && op_B === identity
                     # Test with overlapping entries
                     A_overlap = sparse([1, 2, 3], [1, 2, 3], T[1, 2, 3], m, n)
                     B_overlap = sparse([1, 2, 4], [1, 2, 4], T[4, 5, 6], m, n)
-                    dA_overlap = adapt(op, DeviceSparseMatrixCSC(A_overlap))
-                    dB_overlap = adapt(op, DeviceSparseMatrixCSC(B_overlap))
+                    dA_overlap = adapt(op, GenericSparseMatrixCSC(A_overlap))
+                    dB_overlap = adapt(op, GenericSparseMatrixCSC(B_overlap))
                     result_overlap = dA_overlap + dB_overlap
                     expected_overlap = A_overlap + B_overlap
                     @test collect(result_overlap) ≈ Matrix(expected_overlap)
 
                     # Test dimension mismatch
                     B_wrong = sprand(T, m + 1, n, 0.1)
-                    dB_wrong = adapt(op, DeviceSparseMatrixCSC(B_wrong))
+                    dB_wrong = adapt(op, GenericSparseMatrixCSC(B_wrong))
                     @test_throws DimensionMismatch dA + dB_wrong
                 end
             end
@@ -336,14 +336,14 @@ function shared_test_linearalgebra_matrix_csc(
                 A = sprand(T, dims_A..., 0.1)
                 B = sprand(T, dims_B..., 0.15)
 
-                dA = adapt(op, DeviceSparseMatrixCSC(A))
-                dB = adapt(op, DeviceSparseMatrixCSC(B))
+                dA = adapt(op, GenericSparseMatrixCSC(A))
+                dB = adapt(op, GenericSparseMatrixCSC(B))
 
                 # Test sparse * sparse
                 result = op_A(dA) * op_B(dB)
                 expected = op_A(A) * op_B(B)
                 @test collect(result) ≈ Matrix(expected)
-                @test result isa DeviceSparseMatrixCSC
+                @test result isa GenericSparseMatrixCSC
             end
         end
     end
@@ -355,8 +355,8 @@ function shared_test_linearalgebra_matrix_csc(
                 A_sparse = SparseMatrixCSC{T, int_types[end]}(sprand(T, 30, 25, 0.1))
                 B_sparse = SparseMatrixCSC{T, int_types[end]}(sprand(T, 20, 15, 0.1))
 
-                A = adapt(op, DeviceSparseMatrixCSC(A_sparse))
-                B = adapt(op, DeviceSparseMatrixCSC(B_sparse))
+                A = adapt(op, GenericSparseMatrixCSC(A_sparse))
+                B = adapt(op, GenericSparseMatrixCSC(B_sparse))
 
                 C = kron(A, B)
                 C_expected = kron(A_sparse, B_sparse)
@@ -364,7 +364,7 @@ function shared_test_linearalgebra_matrix_csc(
                 @test size(C) == size(C_expected)
                 @test nnz(C) == nnz(C_expected)
                 @test Matrix(SparseMatrixCSC(C)) ≈ Matrix(C_expected)
-                @test C isa DeviceSparseMatrixCSC
+                @test C isa GenericSparseMatrixCSC
             end
         end
     end

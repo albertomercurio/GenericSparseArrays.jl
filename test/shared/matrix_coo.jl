@@ -5,7 +5,7 @@ function shared_test_matrix_coo(
         float_types::Tuple,
         complex_types::Tuple,
     )
-    return @testset "DeviceSparseMatrixCOO $array_type" verbose = true begin
+    return @testset "GenericSparseMatrixCOO $array_type" verbose = true begin
         shared_test_conversion_matrix_coo(
             op,
             array_type,
@@ -37,22 +37,22 @@ function shared_test_conversion_matrix_coo(
         vals = float_types[end][1.0, 2.0, 3.0]
         B = sparse(rows, cols, vals, 2, 2)
 
-        # test only conversion SparseMatrixCSC <-> DeviceSparseMatrixCOO
+        # test only conversion SparseMatrixCSC <-> GenericSparseMatrixCOO
         if op === Array
-            dA = DeviceSparseMatrixCOO(A)
+            dA = GenericSparseMatrixCOO(A)
             @test size(dA) == (0, 0)
             @test length(dA) == 0
             @test collect(nonzeros(dA)) == int_types[end][]
             @test SparseMatrixCSC(dA) == A
         end
 
-        dA = adapt(op, DeviceSparseMatrixCOO(A))
+        dA = adapt(op, GenericSparseMatrixCOO(A))
         @test size(dA) == (0, 0)
         @test length(dA) == 0
         @test nnz(dA) == 0
         @test collect(nonzeros(dA)) == float_types[end][]
 
-        dB = adapt(op, DeviceSparseMatrixCOO(B))
+        dB = adapt(op, GenericSparseMatrixCOO(B))
         @test size(dB) == (2, 2)
         @test length(dB) == 4
         @test nnz(dB) == 3
@@ -60,7 +60,7 @@ function shared_test_conversion_matrix_coo(
         @test collect(nonzeros(dB)) == collect(nonzeros(B))
         @test SparseMatrixCSC(dB) == B
 
-        @test_throws ArgumentError DeviceSparseMatrixCOO(
+        @test_throws ArgumentError GenericSparseMatrixCOO(
             2,
             2,
             op(int_types[end][1]),
@@ -80,7 +80,7 @@ function shared_test_linearalgebra_matrix_coo(
     @testset "Sum and Trace" begin
         for T in (int_types..., float_types..., complex_types...)
             A = sprand(T, 1000, 1000, 0.01)
-            dA = adapt(op, DeviceSparseMatrixCOO(A))
+            dA = adapt(op, GenericSparseMatrixCOO(A))
 
             @test sum(dA) ≈ sum(A)
 
@@ -104,7 +104,7 @@ function shared_test_linearalgebra_matrix_coo(
                 x = rand(T, size(op_A(A), 1))
                 y = rand(T, size(op_A(A), 2))
 
-                dA = adapt(op, DeviceSparseMatrixCOO(A))
+                dA = adapt(op, GenericSparseMatrixCOO(A))
                 dx = op(x)
                 dy = op(y)
 
@@ -119,7 +119,7 @@ function shared_test_linearalgebra_matrix_coo(
     @testset "Scalar Operations" begin
         for T in (int_types..., float_types..., complex_types...)
             A = sprand(T, 45, 35, 0.1)
-            dA = adapt(op, DeviceSparseMatrixCOO(A))
+            dA = adapt(op, GenericSparseMatrixCOO(A))
 
             α = T <: Complex ? T(2.0 + 1.5im) : (T <: Integer ? T(2) : T(1.8))
 
@@ -143,7 +143,7 @@ function shared_test_linearalgebra_matrix_coo(
     @testset "Unary Operations" begin
         for T in (float_types..., complex_types...)
             A = sprand(T, 28, 22, 0.15)
-            dA = adapt(op, DeviceSparseMatrixCOO(A))
+            dA = adapt(op, GenericSparseMatrixCOO(A))
 
             # Test unary plus
             pos_A = +dA
@@ -186,7 +186,7 @@ function shared_test_linearalgebra_matrix_coo(
     @testset "UniformScaling Multiplication" begin
         for T in (float_types..., complex_types...)
             A = sprand(T, 18, 18, 0.2)
-            dA = adapt(op, DeviceSparseMatrixCOO(A))
+            dA = adapt(op, GenericSparseMatrixCOO(A))
 
             # Test A * I (identity)
             result_I = dA * I
@@ -225,7 +225,7 @@ function shared_test_linearalgebra_matrix_coo(
                 c = op_A(A) * b
                 C = op_A(A) * op_B(B)
 
-                dA = adapt(op, DeviceSparseMatrixCOO(A))
+                dA = adapt(op, GenericSparseMatrixCOO(A))
 
                 # Matrix-Scalar multiplication
                 if T != Int32
@@ -259,7 +259,7 @@ function shared_test_linearalgebra_matrix_coo(
             A = sprand(T, m, n, 0.1)
             B = rand(T, m, n)
 
-            dA = adapt(op, DeviceSparseMatrixCOO(A))
+            dA = adapt(op, GenericSparseMatrixCOO(A))
             dB = op(B)
 
             # Test sparse + dense
@@ -293,29 +293,29 @@ function shared_test_linearalgebra_matrix_coo(
                 A = sprand(T, dims_A..., 0.1)
                 B = sprand(T, dims_B..., 0.15)
 
-                dA = adapt(op, DeviceSparseMatrixCOO(A))
-                dB = adapt(op, DeviceSparseMatrixCOO(B))
+                dA = adapt(op, GenericSparseMatrixCOO(A))
+                dB = adapt(op, GenericSparseMatrixCOO(B))
 
                 # Test sparse + sparse
                 result = op_A(dA) + op_B(dB)
                 expected = op_A(A) + op_B(B)
                 @test collect(result) ≈ Matrix(expected)
-                @test result isa DeviceSparseMatrixCOO
+                @test result isa GenericSparseMatrixCOO
 
                 # Additional tests only for identity + identity
                 if op_A === identity && op_B === identity
                     # Test with overlapping entries
                     A_overlap = sparse([1, 2, 3], [1, 2, 3], T[1, 2, 3], m, n)
                     B_overlap = sparse([1, 2, 4], [1, 2, 4], T[4, 5, 6], m, n)
-                    dA_overlap = adapt(op, DeviceSparseMatrixCOO(A_overlap))
-                    dB_overlap = adapt(op, DeviceSparseMatrixCOO(B_overlap))
+                    dA_overlap = adapt(op, GenericSparseMatrixCOO(A_overlap))
+                    dB_overlap = adapt(op, GenericSparseMatrixCOO(B_overlap))
                     result_overlap = dA_overlap + dB_overlap
                     expected_overlap = A_overlap + B_overlap
                     @test collect(result_overlap) ≈ Matrix(expected_overlap)
 
                     # Test dimension mismatch
                     B_wrong = sprand(T, m + 1, n, 0.1)
-                    dB_wrong = adapt(op, DeviceSparseMatrixCOO(B_wrong))
+                    dB_wrong = adapt(op, GenericSparseMatrixCOO(B_wrong))
                     @test_throws DimensionMismatch dA + dB_wrong
                 end
             end
@@ -338,14 +338,14 @@ function shared_test_linearalgebra_matrix_coo(
                 A = sprand(T, dims_A..., 0.1)
                 B = sprand(T, dims_B..., 0.15)
 
-                dA = adapt(op, DeviceSparseMatrixCOO(A))
-                dB = adapt(op, DeviceSparseMatrixCOO(B))
+                dA = adapt(op, GenericSparseMatrixCOO(A))
+                dB = adapt(op, GenericSparseMatrixCOO(B))
 
                 # Test sparse * sparse
                 result = op_A(dA) * op_B(dB)
                 expected = op_A(A) * op_B(B)
                 @test collect(result) ≈ Matrix(expected)
-                @test result isa DeviceSparseMatrixCOO
+                @test result isa GenericSparseMatrixCOO
             end
         end
     end
@@ -356,8 +356,8 @@ function shared_test_linearalgebra_matrix_coo(
             A_sparse = sprand(T, 30, 25, 0.1)
             B_sparse = sprand(T, 20, 15, 0.1)
 
-            A = adapt(op, DeviceSparseMatrixCOO(A_sparse))
-            B = adapt(op, DeviceSparseMatrixCOO(B_sparse))
+            A = adapt(op, GenericSparseMatrixCOO(A_sparse))
+            B = adapt(op, GenericSparseMatrixCOO(B_sparse))
 
             C = kron(A, B)
             C_expected = kron(A_sparse, B_sparse)
@@ -365,7 +365,7 @@ function shared_test_linearalgebra_matrix_coo(
             @test size(C) == size(C_expected)
             @test nnz(C) == nnz(C_expected)
             @test Matrix(SparseMatrixCSC(C)) ≈ Matrix(C_expected)
-            @test C isa DeviceSparseMatrixCOO
+            @test C isa GenericSparseMatrixCOO
         end
     end
 end

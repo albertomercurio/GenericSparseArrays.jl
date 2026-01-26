@@ -5,7 +5,7 @@ function shared_test_matrix_csr(
         float_types::Tuple,
         complex_types::Tuple,
     )
-    return @testset "DeviceSparseMatrixCSR $array_type" verbose = true begin
+    return @testset "GenericSparseMatrixCSR $array_type" verbose = true begin
         shared_test_conversion_matrix_csr(
             op,
             array_type,
@@ -37,9 +37,9 @@ function shared_test_conversion_matrix_csr(
         vals = float_types[end][1.0, 2.0, 3.0]
         B = sparse(rows, cols, vals, 2, 2)
 
-        # test only conversion SparseMatrixCSC <-> DeviceSparseMatrixCSR
+        # test only conversion SparseMatrixCSC <-> GenericSparseMatrixCSR
         if op === Array
-            dA = DeviceSparseMatrixCSR(A)
+            dA = GenericSparseMatrixCSR(A)
             @test size(dA) == (0, 0)
             @test length(dA) == 0
             @test collect(nonzeros(dA)) == int_types[end][]
@@ -47,8 +47,8 @@ function shared_test_conversion_matrix_csr(
         end
 
         B_csr = SparseMatrixCSC(transpose(B))  # Get the CSR storage pattern
-        dB = adapt(op, DeviceSparseMatrixCSR(transpose(B_csr)))
-        dB2 = adapt(op, DeviceSparseMatrixCSR(B)) # Directly from CSC should also work
+        dB = adapt(op, GenericSparseMatrixCSR(transpose(B_csr)))
+        dB2 = adapt(op, GenericSparseMatrixCSR(B)) # Directly from CSC should also work
         @test size(dB) == (2, 2)
         @test length(dB) == 4
         @test nnz(dB) == 3
@@ -58,7 +58,7 @@ function shared_test_conversion_matrix_csr(
         @test SparseMatrixCSC(dB) == B
         @test SparseMatrixCSC(dB2) == B
 
-        @test_throws ArgumentError DeviceSparseMatrixCSR(
+        @test_throws ArgumentError GenericSparseMatrixCSR(
             2,
             2,
             op(int_types[end][1, 3]),
@@ -79,7 +79,7 @@ function shared_test_linearalgebra_matrix_csr(
         for T in (int_types..., float_types..., complex_types...)
             A = sprand(T, 1000, 1000, 0.01)
             # Convert to CSR storage pattern
-            dA = adapt(op, DeviceSparseMatrixCSR(A))
+            dA = adapt(op, GenericSparseMatrixCSR(A))
 
             @test sum(dA) ≈ sum(A)
 
@@ -100,7 +100,7 @@ function shared_test_linearalgebra_matrix_csr(
                 x = rand(T, size(op_A(A), 1))
                 y = rand(T, size(op_A(A), 2))
 
-                dA = adapt(op, DeviceSparseMatrixCSR(A))
+                dA = adapt(op, GenericSparseMatrixCSR(A))
                 dx = op(x)
                 dy = op(y)
 
@@ -115,7 +115,7 @@ function shared_test_linearalgebra_matrix_csr(
     @testset "Scalar Operations" begin
         for T in (int_types..., float_types..., complex_types...)
             A = sprand(T, 40, 30, 0.1)
-            dA = adapt(op, DeviceSparseMatrixCSR(A))
+            dA = adapt(op, GenericSparseMatrixCSR(A))
 
             α = T <: Complex ? T(1.0 + 2.0im) : (T <: Integer ? T(2) : T(1.5))
 
@@ -139,7 +139,7 @@ function shared_test_linearalgebra_matrix_csr(
     @testset "Unary Operations" begin
         for T in (float_types..., complex_types...)
             A = sprand(T, 25, 20, 0.15)
-            dA = adapt(op, DeviceSparseMatrixCSR(A))
+            dA = adapt(op, GenericSparseMatrixCSR(A))
 
             # Test unary plus
             pos_A = +dA
@@ -182,7 +182,7 @@ function shared_test_linearalgebra_matrix_csr(
     @testset "UniformScaling Multiplication" begin
         for T in (float_types..., complex_types...)
             A = sprand(T, 15, 15, 0.2)
-            dA = adapt(op, DeviceSparseMatrixCSR(A))
+            dA = adapt(op, GenericSparseMatrixCSR(A))
 
             # Test A * I (identity)
             result_I = dA * I
@@ -222,7 +222,7 @@ function shared_test_linearalgebra_matrix_csr(
                 C = op_A(A) * op_B(B)
 
                 # Convert to CSR storage pattern
-                dA = adapt(op, DeviceSparseMatrixCSR(A))
+                dA = adapt(op, GenericSparseMatrixCSR(A))
 
                 # Matrix-Scalar multiplication
                 if T != Int32
@@ -256,7 +256,7 @@ function shared_test_linearalgebra_matrix_csr(
             A = sprand(T, m, n, 0.1)
             B = rand(T, m, n)
 
-            dA = adapt(op, DeviceSparseMatrixCSR(A))
+            dA = adapt(op, GenericSparseMatrixCSR(A))
             dB = op(B)
 
             # Test sparse + dense
@@ -290,29 +290,29 @@ function shared_test_linearalgebra_matrix_csr(
                 A = sprand(T, dims_A..., 0.1)
                 B = sprand(T, dims_B..., 0.15)
 
-                dA = adapt(op, DeviceSparseMatrixCSR(A))
-                dB = adapt(op, DeviceSparseMatrixCSR(B))
+                dA = adapt(op, GenericSparseMatrixCSR(A))
+                dB = adapt(op, GenericSparseMatrixCSR(B))
 
                 # Test sparse + sparse
                 result = op_A(dA) + op_B(dB)
                 expected = op_A(A) + op_B(B)
                 @test collect(result) ≈ Matrix(expected)
-                @test result isa DeviceSparseMatrixCSR
+                @test result isa GenericSparseMatrixCSR
 
                 # Additional tests only for identity + identity
                 if op_A === identity && op_B === identity
                     # Test with overlapping entries
                     A_overlap = sparse([1, 2, 3], [1, 2, 3], T[1, 2, 3], m, n)
                     B_overlap = sparse([1, 2, 4], [1, 2, 4], T[4, 5, 6], m, n)
-                    dA_overlap = adapt(op, DeviceSparseMatrixCSR(A_overlap))
-                    dB_overlap = adapt(op, DeviceSparseMatrixCSR(B_overlap))
+                    dA_overlap = adapt(op, GenericSparseMatrixCSR(A_overlap))
+                    dB_overlap = adapt(op, GenericSparseMatrixCSR(B_overlap))
                     result_overlap = dA_overlap + dB_overlap
                     expected_overlap = A_overlap + B_overlap
                     @test collect(result_overlap) ≈ Matrix(expected_overlap)
 
                     # Test dimension mismatch
                     B_wrong = sprand(T, m + 1, n, 0.1)
-                    dB_wrong = adapt(op, DeviceSparseMatrixCSR(B_wrong))
+                    dB_wrong = adapt(op, GenericSparseMatrixCSR(B_wrong))
                     @test_throws DimensionMismatch dA + dB_wrong
                 end
             end
@@ -335,14 +335,14 @@ function shared_test_linearalgebra_matrix_csr(
                 A = sprand(T, dims_A..., 0.1)
                 B = sprand(T, dims_B..., 0.15)
 
-                dA = adapt(op, DeviceSparseMatrixCSR(A))
-                dB = adapt(op, DeviceSparseMatrixCSR(B))
+                dA = adapt(op, GenericSparseMatrixCSR(A))
+                dB = adapt(op, GenericSparseMatrixCSR(B))
 
                 # Test sparse * sparse
                 result = op_A(dA) * op_B(dB)
                 expected = op_A(A) * op_B(B)
                 @test collect(result) ≈ Matrix(expected)
-                @test result isa DeviceSparseMatrixCSR
+                @test result isa GenericSparseMatrixCSR
             end
         end
     end
@@ -354,8 +354,8 @@ function shared_test_linearalgebra_matrix_csr(
                 A_sparse = SparseMatrixCSC{T, int_types[end]}(sprand(T, 30, 25, 0.1))
                 B_sparse = SparseMatrixCSC{T, int_types[end]}(sprand(T, 20, 15, 0.1))
 
-                A = adapt(op, DeviceSparseMatrixCSR(A_sparse))
-                B = adapt(op, DeviceSparseMatrixCSR(B_sparse))
+                A = adapt(op, GenericSparseMatrixCSR(A_sparse))
+                B = adapt(op, GenericSparseMatrixCSR(B_sparse))
 
                 C = kron(A, B)
                 C_expected = kron(A_sparse, B_sparse)
@@ -363,7 +363,7 @@ function shared_test_linearalgebra_matrix_csr(
                 @test size(C) == size(C_expected)
                 @test nnz(C) == nnz(C_expected)
                 @test Matrix(SparseMatrixCSC(C)) ≈ Matrix(C_expected)
-                @test C isa DeviceSparseMatrixCSR
+                @test C isa GenericSparseMatrixCSR
             end
         end
     end
