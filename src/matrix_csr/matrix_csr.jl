@@ -403,62 +403,15 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparse
                 ),
             )
             
-            _A = $(unwrapa(:A))
-            _B = $(unwrapb(:B))
+            # Convert both to CSC (transpose/adjoint of CSR has CSC structure)
+            # and use existing CSC + CSC addition. The conversion methods
+            # already handle transpose/adjoint correctly.
+            A_csc = DeviceSparseMatrixCSC(A)
+            B_csc = DeviceSparseMatrixCSC(B)
+            result_csc = A_csc + B_csc
             
-            backend_A = get_backend(_A)
-            backend_B = get_backend(_B)
-            backend_A == backend_B ||
-                throw(ArgumentError("Both matrices must have the same backend"))
-            
-            m, n = size(A)
-            
-            # Convert transposed CSR to CSC for efficient addition
-            # transpose(CSR) and adjoint(CSR) have CSC structure
-            if $transa && $transb
-                # Both transposed/adjointed
-                A_csc = DeviceSparseMatrixCSC(
-                    m,
-                    n,
-                    getrowptr(_A),
-                    getcolval(_A),
-                    $conja ? conj.(nonzeros(_A)) : nonzeros(_A),
-                )
-                B_csc = DeviceSparseMatrixCSC(
-                    m,
-                    n,
-                    getrowptr(_B),
-                    getcolval(_B),
-                    $conjb ? conj.(nonzeros(_B)) : nonzeros(_B),
-                )
-                result_csc = A_csc + B_csc
-                # Convert back to CSR
-                return DeviceSparseMatrixCSR(result_csc)
-            elseif $transa
-                # Only A transposed/adjointed
-                A_csc = DeviceSparseMatrixCSC(
-                    m,
-                    n,
-                    getrowptr(_A),
-                    getcolval(_A),
-                    $conja ? conj.(nonzeros(_A)) : nonzeros(_A),
-                )
-                B_csc = DeviceSparseMatrixCSC(_B)
-                result_csc = A_csc + B_csc
-                return DeviceSparseMatrixCSR(result_csc)
-            else  # $transb
-                # Only B transposed/adjointed
-                A_csc = DeviceSparseMatrixCSC(_A)
-                B_csc = DeviceSparseMatrixCSC(
-                    m,
-                    n,
-                    getrowptr(_B),
-                    getcolval(_B),
-                    $conjb ? conj.(nonzeros(_B)) : nonzeros(_B),
-                )
-                result_csc = A_csc + B_csc
-                return DeviceSparseMatrixCSR(result_csc)
-            end
+            # Convert back to CSR
+            return DeviceSparseMatrixCSR(result_csc)
         end
     end
 end
