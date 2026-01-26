@@ -150,7 +150,7 @@ function LinearAlgebra.tr(A::DeviceSparseMatrixCSR)
     kernel = kernel_tr(backend)
     kernel(res, getrowptr(A), getcolval(A), nonzeros(A); ndrange = (m,))
 
-    return allowed_getindex(res, 1)
+    return @allowscalar res[1]
 end
 
 # Matrix-Vector and Matrix-Matrix multiplication

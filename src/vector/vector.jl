@@ -135,7 +135,7 @@ function LinearAlgebra.dot(x::DeviceSparseVector, y::DenseVector)
     kernel = kernel_dot(backend)
     kernel(res, nzval, nzind, y; ndrange = (m,))
 
-    return allowed_getindex(res, 1)
+    return @allowscalar res[1]
 end
 LinearAlgebra.dot(x::DenseVector{T1}, y::DeviceSparseVector{Tv}) where {T1<:Real,Tv<:Real} =
     dot(y, x)
