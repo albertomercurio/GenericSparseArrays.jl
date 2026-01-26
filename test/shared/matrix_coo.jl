@@ -284,23 +284,35 @@ function shared_test_linearalgebra_matrix_coo(
                 (identity, transpose, adjoint),
                 (identity, transpose, adjoint),
             )
-                # Skip identity + identity for int types when using transpose/adjoint
-                # since we test that separately below
+                # Skip transpose/adjoint for int types
+                if T in (int_types...) && (op_A !== identity || op_B !== identity)
+                    continue
+                end
+                
+                # Skip adjoint for real types (same as transpose)
+                if T <: Real && (op_A === adjoint || op_B === adjoint)
+                    continue
+                end
+                
+                # Use rectangular matrices for identity+identity, square for transpose/adjoint
+                m, n = (op_A === identity && op_B === identity) ? (50, 40) : (30, 30)
+                dims_A = op_A === identity ? (m, n) : (n, m)
+                dims_B = op_B === identity ? (m, n) : (n, m)
+                
+                A = sprand(T, dims_A..., 0.1)
+                B = sprand(T, dims_B..., 0.15)
+                
+                dA = adapt(op, DeviceSparseMatrixCOO(A))
+                dB = adapt(op, DeviceSparseMatrixCOO(B))
+                
+                # Test sparse + sparse
+                result = op_A(dA) + op_B(dB)
+                expected = op_A(A) + op_B(B)
+                @test collect(result) ≈ Matrix(expected)
+                @test result isa DeviceSparseMatrixCOO
+                
+                # Additional tests only for identity + identity
                 if op_A === identity && op_B === identity
-                    # Basic addition tests
-                    m, n = 50, 40
-                    A = sprand(T, m, n, 0.1)
-                    B = sprand(T, m, n, 0.15)
-
-                    dA = adapt(op, DeviceSparseMatrixCOO(A))
-                    dB = adapt(op, DeviceSparseMatrixCOO(B))
-
-                    # Test sparse + sparse
-                    result = dA + dB
-                    expected = A + B
-                    @test collect(result) ≈ Matrix(expected)
-                    @test result isa DeviceSparseMatrixCOO
-
                     # Test with overlapping entries
                     A_overlap = sparse([1, 2, 3], [1, 2, 3], T[1, 2, 3], m, n)
                     B_overlap = sparse([1, 2, 4], [1, 2, 4], T[4, 5, 6], m, n)
@@ -314,31 +326,6 @@ function shared_test_linearalgebra_matrix_coo(
                     B_wrong = sprand(T, m + 1, n, 0.1)
                     dB_wrong = adapt(op, DeviceSparseMatrixCOO(B_wrong))
                     @test_throws DimensionMismatch dA + dB_wrong
-                else
-                    # Transpose/adjoint tests - only for float and complex types
-                    if T in (int_types...)
-                        continue
-                    end
-                    
-                    # Skip adjoint for real types (same as transpose)
-                    if T <: Real && (op_A === adjoint || op_B === adjoint)
-                        continue
-                    end
-                    
-                    # Square matrices for transpose tests
-                    m, n = 30, 30
-                    dims_A = op_A === identity ? (m, n) : (n, m)
-                    dims_B = op_B === identity ? (m, n) : (n, m)
-                    
-                    A = sprand(T, dims_A..., 0.1)
-                    B = sprand(T, dims_B..., 0.1)
-                    
-                    dA = adapt(op, DeviceSparseMatrixCOO(A))
-                    dB = adapt(op, DeviceSparseMatrixCOO(B))
-                    
-                    result = op_A(dA) + op_B(dB)
-                    expected = op_A(A) + op_B(B)
-                    @test collect(result) ≈ Matrix(expected)
                 end
             end
         end
