@@ -365,7 +365,7 @@ function Base.:+(A::DeviceSparseMatrixCSC, B::DeviceSparseMatrixCSC)
     colptr_C[1:1] .= one(Ti)
 
     # Allocate result arrays
-    nnz_total =  @allowscalar colptr_C[n+1] - one(Ti)
+    nnz_total = @allowscalar colptr_C[n+1] - one(Ti)
     rowval_C = similar(getrowval(A), nnz_total)
     nzval_C = similar(nonzeros(A), Tv, nnz_total)
 
@@ -391,27 +391,28 @@ end
 
 # Addition with transpose/adjoint support
 for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparseMatrixCSC)
-    for (wrapb, transb, conjb, unwrapb, whereT2) in trans_adj_wrappers(:DeviceSparseMatrixCSC)
+    for (wrapb, transb, conjb, unwrapb, whereT2) in
+        trans_adj_wrappers(:DeviceSparseMatrixCSC)
         # Skip the case where both are not transposed (already handled above)
         (transa == false && transb == false) && continue
-        
+
         TypeA = wrapa(:(T1))
         TypeB = wrapb(:(T2))
-        
+
         @eval function Base.:+(A::$TypeA, B::$TypeB) where {$(whereT1(:T1)),$(whereT2(:T2))}
             size(A) == size(B) || throw(
                 DimensionMismatch(
                     "dimensions must match: A has dims $(size(A)), B has dims $(size(B))",
                 ),
             )
-            
+
             # Convert both to CSR (transpose/adjoint of CSC has CSR structure)
             # and use existing CSR + CSR addition. The conversion methods
             # already handle transpose/adjoint correctly.
             A_csr = DeviceSparseMatrixCSR(A)
             B_csr = DeviceSparseMatrixCSR(B)
             result_csr = A_csr + B_csr
-            
+
             # Convert back to CSC
             return DeviceSparseMatrixCSC(result_csr)
         end
@@ -493,38 +494,42 @@ function Base.:(*)(A::DeviceSparseMatrixCSC, B::DeviceSparseMatrixCSC)
     B_sparse = SparseMatrixCSC(B)
     C_sparse = A_sparse * B_sparse
     C = DeviceSparseMatrixCSC(C_sparse)
-    
+
     # Adapt to the same backend as A and B
     return Adapt.adapt(backend_A, C)
 end
 
 # Multiplication with transpose/adjoint support
 for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparseMatrixCSC)
-    for (wrapb, transb, conjb, unwrapb, whereT2) in trans_adj_wrappers(:DeviceSparseMatrixCSC)
+    for (wrapb, transb, conjb, unwrapb, whereT2) in
+        trans_adj_wrappers(:DeviceSparseMatrixCSC)
         # Skip the case where both are not transposed (already handled above)
         (transa == false && transb == false) && continue
-        
+
         TypeA = wrapa(:(T1))
         TypeB = wrapb(:(T2))
-        
-        @eval function Base.:(*)(A::$TypeA, B::$TypeB) where {$(whereT1(:T1)),$(whereT2(:T2))}
+
+        @eval function Base.:(*)(
+            A::$TypeA,
+            B::$TypeB,
+        ) where {$(whereT1(:T1)),$(whereT2(:T2))}
             size(A, 2) == size(B, 1) || throw(
                 DimensionMismatch(
                     "second dimension of A, $(size(A,2)), does not match first dimension of B, $(size(B,1))",
                 ),
             )
-            
+
             backend_A = get_backend($(unwrapa(:A)))
             backend_B = get_backend($(unwrapb(:B)))
             backend_A == backend_B ||
                 throw(ArgumentError("Both matrices must have the same backend"))
-            
+
             # Convert to SparseMatrixCSC (handles transpose/adjoint), multiply, convert back
             A_sparse = SparseMatrixCSC(A)
             B_sparse = SparseMatrixCSC(B)
             C_sparse = A_sparse * B_sparse
             C = DeviceSparseMatrixCSC(C_sparse)
-            
+
             # Adapt to the same backend as A and B
             return Adapt.adapt(backend_A, C)
         end

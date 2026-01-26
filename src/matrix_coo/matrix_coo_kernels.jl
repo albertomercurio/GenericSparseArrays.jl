@@ -216,16 +216,18 @@ end
 
     if i <= nnz_in
         out_idx = write_indices[i]
-        
+
         # If this is a new entry (or first of duplicates), write it
         if i == 1 || (rowind_in[i] != rowind_in[i-1] || colind_in[i] != colind_in[i-1])
             rowind_out[out_idx] = rowind_in[i]
             colind_out[out_idx] = colind_in[i]
-            
+
             # Sum all duplicates
             val_sum = nzval_in[i]
             j = i + 1
-            while j <= nnz_in && rowind_in[j] == rowind_in[i] && colind_in[j] == colind_in[i]
+            while j <= nnz_in &&
+                      rowind_in[j] == rowind_in[i] &&
+                      colind_in[j] == colind_in[i]
                 val_sum += nzval_in[j]
                 j += 1
             end

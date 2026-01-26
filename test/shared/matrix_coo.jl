@@ -284,24 +284,24 @@ function shared_test_linearalgebra_matrix_coo(
                 (identity, transpose, adjoint),
                 (identity, transpose, adjoint),
             )
-                
+
                 # Use rectangular matrices for identity+identity, square for transpose/adjoint
                 m, n = (op_A === identity && op_B === identity) ? (50, 40) : (30, 30)
                 dims_A = op_A === identity ? (m, n) : (n, m)
                 dims_B = op_B === identity ? (m, n) : (n, m)
-                
+
                 A = sprand(T, dims_A..., 0.1)
                 B = sprand(T, dims_B..., 0.15)
-                
+
                 dA = adapt(op, DeviceSparseMatrixCOO(A))
                 dB = adapt(op, DeviceSparseMatrixCOO(B))
-                
+
                 # Test sparse + sparse
                 result = op_A(dA) + op_B(dB)
                 expected = op_A(A) + op_B(B)
                 @test collect(result) ≈ Matrix(expected)
                 @test result isa DeviceSparseMatrixCOO
-                
+
                 # Additional tests only for identity + identity
                 if op_A === identity && op_B === identity
                     # Test with overlapping entries
@@ -317,6 +317,51 @@ function shared_test_linearalgebra_matrix_coo(
                     B_wrong = sprand(T, m + 1, n, 0.1)
                     dB_wrong = adapt(op, DeviceSparseMatrixCOO(B_wrong))
                     @test_throws DimensionMismatch dA + dB_wrong
+                end
+            end
+        end
+    end
+
+    @testset "Sparse * Sparse Matrix Multiplication" begin
+        for T in (int_types..., float_types..., complex_types...)
+            for (op_A, op_B) in Iterators.product(
+                (identity, transpose, adjoint),
+                (identity, transpose, adjoint),
+            )
+
+                # Use rectangular matrices for identity*identity, square for transpose/adjoint
+                m, k, n =
+                    (op_A === identity && op_B === identity) ? (50, 40, 30) : (30, 30, 30)
+                dims_A = op_A === identity ? (m, k) : (k, m)
+                dims_B = op_B === identity ? (k, n) : (n, k)
+
+                A = sprand(T, dims_A..., 0.1)
+                B = sprand(T, dims_B..., 0.15)
+
+                dA = adapt(op, DeviceSparseMatrixCOO(A))
+                dB = adapt(op, DeviceSparseMatrixCOO(B))
+
+                # Test sparse * sparse
+                result = op_A(dA) * op_B(dB)
+                expected = op_A(A) * op_B(B)
+                @test collect(result) ≈ Matrix(expected)
+                @test result isa DeviceSparseMatrixCOO
+
+                # Additional tests only for identity * identity
+                if op_A === identity && op_B === identity
+                    # Test with specific patterns
+                    A_diag = sparse([1, 2, 3], [1, 2, 3], T[2, 3, 4], m, k)
+                    B_diag = sparse([1, 2, 3], [1, 2, 3], T[5, 6, 7], k, n)
+                    dA_diag = adapt(op, DeviceSparseMatrixCOO(A_diag))
+                    dB_diag = adapt(op, DeviceSparseMatrixCOO(B_diag))
+                    result_diag = dA_diag * dB_diag
+                    expected_diag = A_diag * B_diag
+                    @test collect(result_diag) ≈ Matrix(expected_diag)
+
+                    # Test dimension mismatch
+                    B_wrong = sprand(T, k + 1, n, 0.1)
+                    dB_wrong = adapt(op, DeviceSparseMatrixCOO(B_wrong))
+                    @test_throws DimensionMismatch dA * dB_wrong
                 end
             end
         end
