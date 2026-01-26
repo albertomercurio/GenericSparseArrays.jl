@@ -165,17 +165,15 @@ function DeviceSparseMatrixCSC(A::DeviceSparseMatrixCOO{Tv,Ti}) where {Tv,Ti}
     colind_sorted = A.colind[perm]
     nzval_sorted = A.nzval[perm]
 
-    # Build colptr on device using a histogram approach
+    # Build colptr on device using searchsortedfirst approach
+    # Since colind_sorted is sorted, find where each column starts
+    col_indices = similar(A.colind, Ti, n)
+    col_indices .= Ti(1):Ti(n)
+
+    # Find start positions for each column
     colptr = similar(A.colind, Ti, n + 1)
-    fill!(colptr, zero(Ti))
-
-    # Count entries per column
-    kernel! = kernel_count_per_col!(backend)
-    kernel!(colptr, colind_sorted; ndrange = (nnz_count,))
-
-    # Compute cumulative sum
-    @allowscalar colptr[1] = 1 # TODO: Is there a better way to do this?
-    colptr[2:end] .= _cumsum_AK(colptr[2:end]) .+ 1
+    colptr[1:n] .= _searchsortedfirst_AK(colind_sorted, col_indices)
+    @allowscalar colptr[n+1] = Ti(nnz_count + 1)
 
     return DeviceSparseMatrixCSC(m, n, colptr, rowind_sorted, nzval_sorted)
 end
@@ -242,17 +240,15 @@ function DeviceSparseMatrixCSR(A::DeviceSparseMatrixCOO{Tv,Ti}) where {Tv,Ti}
     colind_sorted = A.colind[perm]
     nzval_sorted = A.nzval[perm]
 
-    # Build rowptr on device using a histogram approach
+    # Build rowptr on device using searchsortedfirst approach
+    # Since rowind_sorted is sorted, find where each row starts
+    row_indices = similar(A.rowind, Ti, m)
+    row_indices .= Ti(1):Ti(m)
+
+    # Find start positions for each row
     rowptr = similar(A.rowind, Ti, m + 1)
-    fill!(rowptr, zero(Ti))
-
-    # Count entries per row
-    kernel! = kernel_count_per_row!(backend)
-    kernel!(rowptr, rowind_sorted; ndrange = (nnz_count,))
-
-    # Compute cumulative sum
-    @allowscalar rowptr[1] = 1 # TODO: Is there a better way to do this?
-    rowptr[2:end] .= _cumsum_AK(rowptr[2:end]) .+ 1
+    rowptr[1:m] .= _searchsortedfirst_AK(rowind_sorted, row_indices)
+    @allowscalar rowptr[m+1] = Ti(nnz_count + 1)
 
     return DeviceSparseMatrixCSR(m, n, rowptr, colind_sorted, nzval_sorted)
 end
