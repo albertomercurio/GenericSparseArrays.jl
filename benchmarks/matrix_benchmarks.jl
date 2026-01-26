@@ -13,12 +13,12 @@ Benchmark matrix-vector multiplication for CSC, CSR, and COO formats.
 - `T`: Element type (default: Float64)
 """
 function benchmark_matrix_vector_mul!(
-    SUITE,
-    array_constructor,
-    array_type_name;
-    N = 10000,
-    T = Float64,
-)
+        SUITE,
+        array_constructor,
+        array_type_name;
+        N = 10000,
+        T = Float64,
+    )
     # Create sparse matrix with 1% density
     sm_csc_std = sprand(T, N, N, 0.01)
 
@@ -72,13 +72,13 @@ Multiplies a sparse N×N matrix with a dense N×M matrix.
 - `M`: Number of columns in the dense matrix (default: 100)
 """
 function benchmark_matrix_matrix_mul!(
-    SUITE,
-    array_constructor,
-    array_type_name;
-    N = 10000,
-    T = Float64,
-    M = 100,
-)
+        SUITE,
+        array_constructor,
+        array_type_name;
+        N = 10000,
+        T = Float64,
+        M = 100,
+    )
     # Create sparse matrix with 1% density
     sm_csc_std = sprand(T, N, N, 0.01)
 
@@ -130,12 +130,12 @@ Benchmark three-argument dot product dot(x, A, y) for CSC, CSR, and COO formats.
 - `T`: Element type (default: Float64)
 """
 function benchmark_three_arg_dot!(
-    SUITE,
-    array_constructor,
-    array_type_name;
-    N = 10000,
-    T = Float64,
-)
+        SUITE,
+        array_constructor,
+        array_type_name;
+        N = 10000,
+        T = Float64,
+    )
     # Create sparse matrix with 1% density
     sm_csc_std = sprand(T, N, N, 0.01)
 
@@ -187,12 +187,12 @@ Benchmark sparse + dense matrix addition for CSC, CSR, and COO formats.
 - `T`: Element type (default: Float64)
 """
 function benchmark_sparse_dense_add!(
-    SUITE,
-    array_constructor,
-    array_type_name;
-    N = 10000,
-    T = Float64,
-)
+        SUITE,
+        array_constructor,
+        array_type_name;
+        N = 10000,
+        T = Float64,
+    )
     # Create sparse matrix with 1% density
     sm_csc_std = sprand(T, N, N, 0.01)
 
@@ -243,12 +243,12 @@ Benchmark sparse + sparse matrix addition for CSC, CSR, and COO formats.
 - `T`: Element type (default: Float64)
 """
 function benchmark_sparse_sparse_add!(
-    SUITE,
-    array_constructor,
-    array_type_name;
-    N = 10000,
-    T = Float64,
-)
+        SUITE,
+        array_constructor,
+        array_type_name;
+        N = 10000,
+        T = Float64,
+    )
     # Create two sparse matrices with 1% density
     sm_a_csc_std = sprand(T, N, N, 0.01)
     sm_b_csc_std = sprand(T, N, N, 0.01)

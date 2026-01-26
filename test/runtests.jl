@@ -27,9 +27,9 @@ const cpu_backend_names = ("Base Array", "JLArray")
 const cpu_backend_funcs = (Array, JLArray)
 
 if GROUP in ("All", "CPU")
-    @testset "CPU" verbose=true begin
+    @testset "CPU" verbose = true begin
         for (name, func) in zip(cpu_backend_names, cpu_backend_funcs)
-            @testset "$name Backend" verbose=true begin
+            @testset "$name Backend" verbose = true begin
                 shared_test_vector(
                     func,
                     name,
@@ -106,87 +106,87 @@ if GROUP in ("All", "Code-Quality")
         Aqua.test_all(DeviceSparseArrays; ambiguities = ambiguities)
     end
 
-    @testset "Code linting (JET.jl)" verbose=true begin
+    @testset "Code linting (JET.jl)" verbose = true begin
         # JET.test_package(DeviceSparseArrays; target_defined_modules = true)
 
         for (name, func) in zip(cpu_backend_names, cpu_backend_funcs)
-            @testset "$name Backend" verbose=true begin
-                @test_opt target_modules=(@__MODULE__, DeviceSparseArrays) shared_test_vector_quality(
+            @testset "$name Backend" verbose = true begin
+                @test_opt target_modules = (@__MODULE__, DeviceSparseArrays) shared_test_vector_quality(
                     func,
-                    Float64;
+                    Float64
                 )
-                @test_opt target_modules=(@__MODULE__, DeviceSparseArrays) shared_test_matrix_csc_quality(
+                @test_opt target_modules = (@__MODULE__, DeviceSparseArrays) shared_test_matrix_csc_quality(
                     func,
                     Float64;
                     op_A = adjoint,
                     op_B = identity,
                 )
-                @test_opt target_modules=(@__MODULE__, DeviceSparseArrays) shared_test_matrix_csc_quality(
+                @test_opt target_modules = (@__MODULE__, DeviceSparseArrays) shared_test_matrix_csc_quality(
                     func,
                     Float64;
                     op_A = adjoint,
                     op_B = adjoint,
                 )
-                @test_opt target_modules=(@__MODULE__, DeviceSparseArrays) shared_test_matrix_csr_quality(
+                @test_opt target_modules = (@__MODULE__, DeviceSparseArrays) shared_test_matrix_csr_quality(
                     func,
                     Float64;
                     op_A = identity,
                     op_B = identity,
                 )
-                @test_opt target_modules=(@__MODULE__, DeviceSparseArrays) shared_test_matrix_csr_quality(
+                @test_opt target_modules = (@__MODULE__, DeviceSparseArrays) shared_test_matrix_csr_quality(
                     func,
                     Float64;
                     op_A = identity,
                     op_B = adjoint,
                 )
-                @test_opt target_modules=(@__MODULE__, DeviceSparseArrays) shared_test_matrix_coo_quality(
+                @test_opt target_modules = (@__MODULE__, DeviceSparseArrays) shared_test_matrix_coo_quality(
                     func,
                     Float64;
                     op_A = identity,
                     op_B = identity,
                 )
-                @test_opt target_modules=(@__MODULE__, DeviceSparseArrays) shared_test_matrix_coo_quality(
+                @test_opt target_modules = (@__MODULE__, DeviceSparseArrays) shared_test_matrix_coo_quality(
                     func,
                     Float64;
                     op_A = transpose,
                     op_B = adjoint,
                 )
 
-                @test_call target_modules=(@__MODULE__, DeviceSparseArrays) shared_test_vector_quality(
+                @test_call target_modules = (@__MODULE__, DeviceSparseArrays) shared_test_vector_quality(
                     func,
-                    Float64;
+                    Float64
                 )
-                @test_call target_modules=(@__MODULE__, DeviceSparseArrays) shared_test_matrix_csc_quality(
+                @test_call target_modules = (@__MODULE__, DeviceSparseArrays) shared_test_matrix_csc_quality(
                     func,
                     Float64;
                     op_A = adjoint,
                     op_B = identity,
                 )
-                @test_call target_modules=(@__MODULE__, DeviceSparseArrays) shared_test_matrix_csc_quality(
+                @test_call target_modules = (@__MODULE__, DeviceSparseArrays) shared_test_matrix_csc_quality(
                     func,
                     Float64;
                     op_A = adjoint,
                     op_B = adjoint,
                 )
-                @test_call target_modules=(@__MODULE__, DeviceSparseArrays) shared_test_matrix_csr_quality(
+                @test_call target_modules = (@__MODULE__, DeviceSparseArrays) shared_test_matrix_csr_quality(
                     func,
                     Float64;
                     op_A = identity,
                     op_B = identity,
                 )
-                @test_call target_modules=(@__MODULE__, DeviceSparseArrays) shared_test_matrix_csr_quality(
+                @test_call target_modules = (@__MODULE__, DeviceSparseArrays) shared_test_matrix_csr_quality(
                     func,
                     Float64;
                     op_A = identity,
                     op_B = adjoint,
                 )
-                @test_call target_modules=(@__MODULE__, DeviceSparseArrays) shared_test_matrix_coo_quality(
+                @test_call target_modules = (@__MODULE__, DeviceSparseArrays) shared_test_matrix_coo_quality(
                     func,
                     Float64;
                     op_A = identity,
                     op_B = identity,
                 )
-                @test_call target_modules=(@__MODULE__, DeviceSparseArrays) shared_test_matrix_coo_quality(
+                @test_call target_modules = (@__MODULE__, DeviceSparseArrays) shared_test_matrix_coo_quality(
                     func,
                     Float64;
                     op_A = transpose,

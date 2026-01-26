@@ -1,11 +1,11 @@
 function shared_test_matrix_coo(
-    op,
-    array_type::String,
-    int_types::Tuple,
-    float_types::Tuple,
-    complex_types::Tuple,
-)
-    @testset "DeviceSparseMatrixCOO $array_type" verbose=true begin
+        op,
+        array_type::String,
+        int_types::Tuple,
+        float_types::Tuple,
+        complex_types::Tuple,
+    )
+    return @testset "DeviceSparseMatrixCOO $array_type" verbose = true begin
         shared_test_conversion_matrix_coo(
             op,
             array_type,
@@ -24,13 +24,13 @@ function shared_test_matrix_coo(
 end
 
 function shared_test_conversion_matrix_coo(
-    op,
-    array_type::String,
-    int_types::Tuple,
-    float_types::Tuple,
-    complex_types::Tuple,
-)
-    @testset "Conversion" begin
+        op,
+        array_type::String,
+        int_types::Tuple,
+        float_types::Tuple,
+        complex_types::Tuple,
+    )
+    return @testset "Conversion" begin
         A = spzeros(Float32, 0, 0)
         rows = int_types[end][1, 2, 1]
         cols = int_types[end][1, 1, 2]
@@ -71,12 +71,12 @@ function shared_test_conversion_matrix_coo(
 end
 
 function shared_test_linearalgebra_matrix_coo(
-    op,
-    array_type::String,
-    int_types::Tuple,
-    float_types::Tuple,
-    complex_types::Tuple,
-)
+        op,
+        array_type::String,
+        int_types::Tuple,
+        float_types::Tuple,
+        complex_types::Tuple,
+    )
     @testset "Sum and Trace" begin
         for T in (int_types..., float_types..., complex_types...)
             A = sprand(T, 1000, 1000, 0.01)
@@ -209,9 +209,9 @@ function shared_test_linearalgebra_matrix_coo(
     @testset "Matrix-Scalar, Matrix-Vector and Matrix-Matrix multiplication" begin
         for T in (int_types..., float_types..., complex_types...)
             for (op_A, op_B) in Iterators.product(
-                (identity, transpose, adjoint),
-                (identity, transpose, adjoint),
-            )
+                    (identity, transpose, adjoint),
+                    (identity, transpose, adjoint),
+                )
                 if T in (ComplexF32, ComplexF64)
                     # The mul! function uses @atomic for COO matrices, which does not support Complex types
                     continue
@@ -281,9 +281,9 @@ function shared_test_linearalgebra_matrix_coo(
     @testset "Sparse + Sparse Matrix Addition" begin
         for T in (int_types..., float_types..., complex_types...)
             for (op_A, op_B) in Iterators.product(
-                (identity, transpose, adjoint),
-                (identity, transpose, adjoint),
-            )
+                    (identity, transpose, adjoint),
+                    (identity, transpose, adjoint),
+                )
 
                 # Use rectangular matrices for identity+identity, square for transpose/adjoint
                 m, n = (op_A === identity && op_B === identity) ? (50, 40) : (30, 30)
@@ -325,9 +325,9 @@ function shared_test_linearalgebra_matrix_coo(
     @testset "Sparse * Sparse Matrix Multiplication" begin
         for T in (int_types..., float_types..., complex_types...)
             for (op_A, op_B) in Iterators.product(
-                (identity, transpose, adjoint),
-                (identity, transpose, adjoint),
-            )
+                    (identity, transpose, adjoint),
+                    (identity, transpose, adjoint),
+                )
 
                 # Use rectangular matrices for identity*identity, square for transpose/adjoint
                 m, k, n =
@@ -350,7 +350,7 @@ function shared_test_linearalgebra_matrix_coo(
         end
     end
 
-    @testset "Kronecker Product" begin
+    return @testset "Kronecker Product" begin
         for T in (int_types..., float_types..., complex_types...)
             # Test with rectangular matrices
             A_sparse = sprand(T, 30, 25, 0.1)

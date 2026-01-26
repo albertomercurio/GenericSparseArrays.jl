@@ -1,4 +1,4 @@
-@testset "Reactant Backend" verbose=true begin
+@testset "Reactant Backend" verbose = true begin
     shared_test_vector(
         Reactant.ConcreteRArray,
         "Reactant",

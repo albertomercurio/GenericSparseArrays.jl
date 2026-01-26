@@ -1,11 +1,11 @@
 function shared_test_matrix_csc(
-    op,
-    array_type::String,
-    int_types::Tuple,
-    float_types::Tuple,
-    complex_types::Tuple,
-)
-    @testset "DeviceSparseMatrixCSC $array_type" verbose=true begin
+        op,
+        array_type::String,
+        int_types::Tuple,
+        float_types::Tuple,
+        complex_types::Tuple,
+    )
+    return @testset "DeviceSparseMatrixCSC $array_type" verbose = true begin
         shared_test_conversion_matrix_csc(
             op,
             array_type,
@@ -24,13 +24,13 @@ function shared_test_matrix_csc(
 end
 
 function shared_test_conversion_matrix_csc(
-    op,
-    array_type::String,
-    int_types::Tuple,
-    float_types::Tuple,
-    complex_types::Tuple,
-)
-    @testset "Conversion" begin
+        op,
+        array_type::String,
+        int_types::Tuple,
+        float_types::Tuple,
+        complex_types::Tuple,
+    )
+    return @testset "Conversion" begin
         A = spzeros(float_types[end], 0, 0)
         rows = int_types[end][1, 2, 1]
         cols = int_types[end][1, 1, 2]
@@ -72,12 +72,12 @@ function shared_test_conversion_matrix_csc(
 end
 
 function shared_test_linearalgebra_matrix_csc(
-    op,
-    array_type::String,
-    int_types::Tuple,
-    float_types::Tuple,
-    complex_types::Tuple,
-)
+        op,
+        array_type::String,
+        int_types::Tuple,
+        float_types::Tuple,
+        complex_types::Tuple,
+    )
     @testset "Sum and Trace" begin
         for T in (int_types..., float_types..., complex_types...)
             A = sprand(T, 1000, 1000, 0.01)
@@ -207,9 +207,9 @@ function shared_test_linearalgebra_matrix_csc(
     @testset "Matrix-Scalar, Matrix-Vector and Matrix-Matrix multiplication" begin
         for T in (int_types..., float_types..., complex_types...)
             for (op_A, op_B) in Iterators.product(
-                (identity, transpose, adjoint),
-                (identity, transpose, adjoint),
-            )
+                    (identity, transpose, adjoint),
+                    (identity, transpose, adjoint),
+                )
                 if T in (ComplexF32, ComplexF64) && op_A === identity
                     # The mul! function uses @atomic for CSC matrices, which does not support Complex types
                     continue
@@ -279,9 +279,9 @@ function shared_test_linearalgebra_matrix_csc(
     @testset "Sparse + Sparse Matrix Addition" begin
         for T in (int_types..., float_types..., complex_types...)
             for (op_A, op_B) in Iterators.product(
-                (identity, transpose, adjoint),
-                (identity, transpose, adjoint),
-            )
+                    (identity, transpose, adjoint),
+                    (identity, transpose, adjoint),
+                )
 
                 # Use rectangular matrices for identity+identity, square for transpose/adjoint
                 m, n = (op_A === identity && op_B === identity) ? (50, 40) : (30, 30)
@@ -323,9 +323,9 @@ function shared_test_linearalgebra_matrix_csc(
     @testset "Sparse * Sparse Matrix Multiplication" begin
         for T in (int_types..., float_types..., complex_types...)
             for (op_A, op_B) in Iterators.product(
-                (identity, transpose, adjoint),
-                (identity, transpose, adjoint),
-            )
+                    (identity, transpose, adjoint),
+                    (identity, transpose, adjoint),
+                )
 
                 # Use rectangular matrices for identity*identity, square for transpose/adjoint
                 m, k, n =
@@ -348,12 +348,12 @@ function shared_test_linearalgebra_matrix_csc(
         end
     end
 
-    @testset "Kronecker Product" begin
+    return @testset "Kronecker Product" begin
         if array_type != "JLArray"
             for T in (int_types..., float_types..., complex_types...)
                 # Test with rectangular matrices
-                A_sparse = SparseMatrixCSC{T,int_types[end]}(sprand(T, 30, 25, 0.1))
-                B_sparse = SparseMatrixCSC{T,int_types[end]}(sprand(T, 20, 15, 0.1))
+                A_sparse = SparseMatrixCSC{T, int_types[end]}(sprand(T, 30, 25, 0.1))
+                B_sparse = SparseMatrixCSC{T, int_types[end]}(sprand(T, 20, 15, 0.1))
 
                 A = adapt(op, DeviceSparseMatrixCSC(A_sparse))
                 B = adapt(op, DeviceSparseMatrixCSC(B_sparse))

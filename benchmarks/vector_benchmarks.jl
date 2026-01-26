@@ -13,12 +13,12 @@ Benchmark sparse vector sum operation.
 - `T`: Element type (default: Float64)
 """
 function benchmark_vector_sum!(
-    SUITE,
-    array_constructor,
-    array_type_name;
-    N = 10000,
-    T = Float64,
-)
+        SUITE,
+        array_constructor,
+        array_type_name;
+        N = 10000,
+        T = Float64,
+    )
     # Create sparse vector with 1% density
     sv = sprand(T, N, 0.01)
     dsv = adapt(array_constructor, DeviceSparseVector(sv))
@@ -47,12 +47,12 @@ Benchmark sparse-dense dot product.
 - `T`: Element type (default: Float64)
 """
 function benchmark_vector_sparse_dense_dot!(
-    SUITE,
-    array_constructor,
-    array_type_name;
-    N = 10000,
-    T = Float64,
-)
+        SUITE,
+        array_constructor,
+        array_type_name;
+        N = 10000,
+        T = Float64,
+    )
     # Create sparse vector with 1% density
     sv = sprand(T, N, 0.01)
     dsv = adapt(array_constructor, DeviceSparseVector(sv))

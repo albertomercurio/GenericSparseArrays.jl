@@ -1,4 +1,4 @@
-@testset "CUDA Backend" verbose=true begin
+@testset "CUDA Backend" verbose = true begin
     shared_test_vector(
         CuArray,
         "CUDA",

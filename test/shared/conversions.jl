@@ -1,14 +1,14 @@
 function shared_test_conversions(
-    op,
-    array_type::String,
-    int_types::Tuple,
-    float_types::Tuple,
-    complex_types::Tuple,
-)
-    @testset "Format Conversions $array_type" verbose=true begin
+        op,
+        array_type::String,
+        int_types::Tuple,
+        float_types::Tuple,
+        complex_types::Tuple,
+    )
+    return @testset "Format Conversions $array_type" verbose = true begin
         Tv = float_types[end]
         Ti = int_types[end]
-        A = SparseMatrixCSC{Tv,Ti}(sprand(100, 200, 0.05))
+        A = SparseMatrixCSC{Tv, Ti}(sprand(100, 200, 0.05))
 
         # Test CSC ↔ COO conversions
         @testset "CSC ↔ COO" begin
@@ -103,7 +103,7 @@ function shared_test_conversions(
         # Test adjoint conversions with complex matrices
         @testset "Adjoint Conversions" begin
             Tvc = complex_types[end]
-            A_complex = SparseMatrixCSC{Tvc,Ti}(sprand(ComplexF64, 100, 200, 0.05))
+            A_complex = SparseMatrixCSC{Tvc, Ti}(sprand(ComplexF64, 100, 200, 0.05))
 
             # CSC adjoint
             A_csc = adapt(op, DeviceSparseMatrixCSC(A_complex))
