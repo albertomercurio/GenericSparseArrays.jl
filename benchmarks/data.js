@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1769395836671,
+  "lastUpdate": 1769451440262,
   "repoUrl": "https://github.com/albertomercurio/DeviceSparseArrays.jl",
   "entries": {
     "Benchmark Results": [
@@ -2712,6 +2712,318 @@ window.BENCHMARK_DATA = {
             "value": 161441372,
             "unit": "ns",
             "extra": "gctime=52380727\nmemory=322113568\nallocs=12079118\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "198982749+Copilot@users.noreply.github.com",
+            "name": "Copilot",
+            "username": "Copilot"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "dd4d10696a03384b784db398299d6b740c428a93",
+          "message": "Implement sparse-sparse matrix multiplication with GPU-compatible kernels (#36)\n\n* Initial plan\n\n* Implement sparse-sparse matrix multiplication for all formats\n\nCo-authored-by: albertomercurio <61953577+albertomercurio@users.noreply.github.com>\n\n* Add comprehensive tests for sparse-sparse multiplication\n\nCo-authored-by: albertomercurio <61953577+albertomercurio@users.noreply.github.com>\n\n* Fix code review comments - improve docstrings and remove misleading comment\n\nCo-authored-by: albertomercurio <61953577+albertomercurio@users.noreply.github.com>\n\n* Implement proper GPU-compatible SpGEMM kernels for CSC and CSR formats\n\nCo-authored-by: albertomercurio <61953577+albertomercurio@users.noreply.github.com>\n\n* Simplify COO multiplication and remove redundant tests\n\nCo-authored-by: albertomercurio <61953577+albertomercurio@users.noreply.github.com>\n\n* Fix Metal errors\n\n---------\n\nCo-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>\nCo-authored-by: albertomercurio <61953577+albertomercurio@users.noreply.github.com>\nCo-authored-by: Alberto Mercurio <alberto.mercurio96@gmail.com>",
+          "timestamp": "2026-01-26T19:04:15+01:00",
+          "tree_id": "b008b236dc382877585ff1aa59679c08eb0f68c1",
+          "url": "https://github.com/albertomercurio/DeviceSparseArrays.jl/commit/dd4d10696a03384b784db398299d6b740c428a93"
+        },
+        "date": 1769451439905,
+        "tool": "julia",
+        "benches": [
+          {
+            "name": "Matrix-Vector Multiplication/Array/CSC",
+            "value": 3635477,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=1808\nallocs=32\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Matrix-Vector Multiplication/Array/COO",
+            "value": 5344519,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=1808\nallocs=32\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Matrix-Vector Multiplication/Array/CSR",
+            "value": 427508,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=1808\nallocs=32\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Matrix-Vector Multiplication/JLArray/CSC",
+            "value": 90429593,
+            "unit": "ns",
+            "extra": "gctime=25289425.5\nmemory=163420864\nallocs=6128171\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Matrix-Vector Multiplication/JLArray/COO",
+            "value": 266282340,
+            "unit": "ns",
+            "extra": "gctime=55608946\nmemory=321235584\nallocs=12046223\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Matrix-Vector Multiplication/JLArray/CSR",
+            "value": 135860219,
+            "unit": "ns",
+            "extra": "gctime=50284932\nmemory=244328224\nallocs=9162197\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Sparse Vector/Array/Sum",
+            "value": 26.361723446893787,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=0\nallocs=0\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":998,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Sparse Vector/Array/Sparse-Dense dot",
+            "value": 128.4769921436588,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=0\nallocs=0\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":891,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Sparse Vector/JLArray/Sum",
+            "value": 16651,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=24032\nallocs=812\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Sparse Vector/JLArray/Sparse-Dense dot",
+            "value": 23374,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=26224\nallocs=963\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Format Conversions/Array/CSC → COO",
+            "value": 2920249,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=48014752\nallocs=50\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Format Conversions/Array/COO → CSC",
+            "value": 10285846.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=64345488\nallocs=161\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Format Conversions/Array/CSR → COO",
+            "value": 3011143,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=48014752\nallocs=50\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Format Conversions/Array/COO → CSR",
+            "value": 47032925.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=72348064\nallocs=169\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Format Conversions/JLArray/CSC → COO",
+            "value": 211729920,
+            "unit": "ns",
+            "extra": "gctime=75502738\nmemory=449592352\nallocs=15059691\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Format Conversions/JLArray/COO → CSC",
+            "value": 1117427324,
+            "unit": "ns",
+            "extra": "gctime=364721208\nmemory=2216941112\nallocs=78088801\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Format Conversions/JLArray/CSR → COO",
+            "value": 212992265,
+            "unit": "ns",
+            "extra": "gctime=77343793\nmemory=449592352\nallocs=15059691\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Format Conversions/JLArray/COO → CSR",
+            "value": 1209557497,
+            "unit": "ns",
+            "extra": "gctime=389399035\nmemory=2224940992\nallocs=78088804\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Sparse + Dense Addition/Array/CSC",
+            "value": 116195618,
+            "unit": "ns",
+            "extra": "gctime=5224760\nmemory=800003632\nallocs=35\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Sparse + Dense Addition/Array/COO",
+            "value": 129232110,
+            "unit": "ns",
+            "extra": "gctime=5368317\nmemory=800003632\nallocs=35\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Sparse + Dense Addition/Array/CSR",
+            "value": 139292889,
+            "unit": "ns",
+            "extra": "gctime=5504120\nmemory=800003632\nallocs=35\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Sparse + Dense Addition/JLArray/CSC",
+            "value": 428485592,
+            "unit": "ns",
+            "extra": "gctime=101264214.5\nmemory=1186024112\nallocs=12073157\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Sparse + Dense Addition/JLArray/COO",
+            "value": 482937314,
+            "unit": "ns",
+            "extra": "gctime=106433732\nmemory=1264511408\nallocs=15016431\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Sparse + Dense Addition/JLArray/CSR",
+            "value": 457326862.5,
+            "unit": "ns",
+            "extra": "gctime=116771195.5\nmemory=1186024112\nallocs=12073157\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Kronecker Product/Array/CSC",
+            "value": 619986,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=1492304\nallocs=260\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Kronecker Product/Array/COO",
+            "value": 53319,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=462320\nallocs=51\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Kronecker Product/Array/CSR",
+            "value": 614235,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=1492304\nallocs=260\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Kronecker Product/JLArray/CSC",
+            "value": 11093009,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=25130992\nallocs=867853\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Kronecker Product/JLArray/COO",
+            "value": 2250310,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=5659280\nallocs=198851\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Kronecker Product/JLArray/CSR",
+            "value": 11055922,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=25130992\nallocs=867853\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Matrix-Matrix Multiplication/Array/CSC",
+            "value": 279934263.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=1808\nallocs=32\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Matrix-Matrix Multiplication/Array/COO",
+            "value": 255645181,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=1824\nallocs=33\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Matrix-Matrix Multiplication/Array/CSR",
+            "value": 49501352,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=1808\nallocs=32\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Matrix-Matrix Multiplication/JLArray/CSC",
+            "value": 9573430422,
+            "unit": "ns",
+            "extra": "gctime=3068435698\nmemory=16377462432\nallocs=611754720\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Matrix-Matrix Multiplication/JLArray/COO",
+            "value": 18304488671,
+            "unit": "ns",
+            "extra": "gctime=6707515103\nmemory=35297609632\nallocs=1202509320\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Matrix-Matrix Multiplication/JLArray/CSR",
+            "value": 18946257685,
+            "unit": "ns",
+            "extra": "gctime=5495154583\nmemory=27684881632\nallocs=914632020\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Sparse + Sparse Addition/Array/CSC",
+            "value": 12001860,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=64104008\nallocs=120\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Sparse + Sparse Addition/Array/COO",
+            "value": 87350389,
+            "unit": "ns",
+            "extra": "gctime=4046524\nmemory=273622552\nallocs=285\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Sparse + Sparse Addition/Array/CSR",
+            "value": 11997778,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=64104008\nallocs=120\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Sparse + Sparse Addition/JLArray/CSC",
+            "value": 629619084.5,
+            "unit": "ns",
+            "extra": "gctime=220425937.5\nmemory=1188105008\nallocs=42142148\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Sparse + Sparse Addition/JLArray/COO",
+            "value": 4152487074.5,
+            "unit": "ns",
+            "extra": "gctime=1400241760.5\nmemory=7759874232\nallocs=275941863\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Sparse + Sparse Addition/JLArray/CSR",
+            "value": 641829116,
+            "unit": "ns",
+            "extra": "gctime=229102068\nmemory=1188119648\nallocs=42142697\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Three-argument dot/Array/CSC",
+            "value": 441573.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=1904\nallocs=31\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Three-argument dot/Array/COO",
+            "value": 2284629.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=3624\nallocs=32\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Three-argument dot/Array/CSR",
+            "value": 490795,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=1904\nallocs=31\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Three-argument dot/JLArray/CSC",
+            "value": 169878985,
+            "unit": "ns",
+            "extra": "gctime=58452491\nmemory=321637728\nallocs=12061274\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Three-argument dot/JLArray/COO",
+            "value": 219858565,
+            "unit": "ns",
+            "extra": "gctime=79650898\nmemory=400111232\nallocs=15003817\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Three-argument dot/JLArray/CSR",
+            "value": 164407054,
+            "unit": "ns",
+            "extra": "gctime=56315886\nmemory=321637728\nallocs=12061274\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5,\"overhead\":0,\"memory_tolerance\":0.01}"
           }
         ]
       }
