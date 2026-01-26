@@ -307,6 +307,42 @@ function shared_test_linearalgebra_matrix_csc(
         end
     end
 
+    @testset "Sparse + Sparse Transpose/Adjoint Addition" begin
+        for T in (float_types..., complex_types...)
+            m, n = 30, 30  # Square matrices for transpose tests
+            A = sprand(T, m, n, 0.1)
+            B = sprand(T, n, m, 0.1)  # Transpose size
+
+            dA = adapt(op, DeviceSparseMatrixCSC(A))
+            dB = adapt(op, DeviceSparseMatrixCSC(B))
+
+            # Test sparse + transpose(sparse)
+            result_trans = dA + transpose(dB)
+            expected_trans = A + transpose(B)
+            @test collect(result_trans) ≈ Matrix(expected_trans)
+
+            # Test transpose(sparse) + sparse
+            result_trans2 = transpose(dB) + dA
+            @test collect(result_trans2) ≈ Matrix(expected_trans)
+
+            # Test sparse + adjoint(sparse) for complex types
+            if T <: Complex
+                result_adj = dA + adjoint(dB)
+                expected_adj = A + adjoint(B)
+                @test collect(result_adj) ≈ Matrix(expected_adj)
+
+                # Test adjoint(sparse) + sparse
+                result_adj2 = adjoint(dB) + dA
+                @test collect(result_adj2) ≈ Matrix(expected_adj)
+            end
+
+            # Test transpose + transpose
+            result_trans_trans = transpose(dA) + transpose(dA)
+            expected_trans_trans = transpose(A) + transpose(A)
+            @test collect(result_trans_trans) ≈ Matrix(expected_trans_trans)
+        end
+    end
+
     @testset "Kronecker Product" begin
         if array_type != "JLArray"
             for T in (int_types..., float_types..., complex_types...)

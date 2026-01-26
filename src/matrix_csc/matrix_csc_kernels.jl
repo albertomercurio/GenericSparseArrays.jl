@@ -184,7 +184,7 @@ end
     nnz_per_col[col] = count
 end
 
-# Kernel for merging two CSC matrices (addition)
+# Kernel for merging two CSC matrices (addition) with optional conjugation
 @kernel inbounds=true function kernel_merge_csc!(
     rowval_C,
     nzval_C,
@@ -195,7 +195,9 @@ end
     @Const(colptr_B),
     @Const(rowval_B),
     @Const(nzval_B),
-)
+    ::Val{CONJA},
+    ::Val{CONJB},
+) where {CONJA,CONJB}
     col = @index(Global)
 
     i_A = colptr_A[col]
@@ -209,17 +211,19 @@ end
         row_B = rowval_B[i_B]
         if row_A < row_B
             rowval_C[i_C] = row_A
-            nzval_C[i_C] = nzval_A[i_A]
+            nzval_C[i_C] = CONJA ? conj(nzval_A[i_A]) : nzval_A[i_A]
             i_A += 1
             i_C += 1
         elseif row_A > row_B
             rowval_C[i_C] = row_B
-            nzval_C[i_C] = nzval_B[i_B]
+            nzval_C[i_C] = CONJB ? conj(nzval_B[i_B]) : nzval_B[i_B]
             i_B += 1
             i_C += 1
         else  # row_A == row_B
             rowval_C[i_C] = row_A
-            nzval_C[i_C] = nzval_A[i_A] + nzval_B[i_B]
+            vala = CONJA ? conj(nzval_A[i_A]) : nzval_A[i_A]
+            valb = CONJB ? conj(nzval_B[i_B]) : nzval_B[i_B]
+            nzval_C[i_C] = vala + valb
             i_A += 1
             i_B += 1
             i_C += 1
@@ -229,7 +233,7 @@ end
     # Copy remaining entries from A
     while i_A < end_A
         rowval_C[i_C] = rowval_A[i_A]
-        nzval_C[i_C] = nzval_A[i_A]
+        nzval_C[i_C] = CONJA ? conj(nzval_A[i_A]) : nzval_A[i_A]
         i_A += 1
         i_C += 1
     end
@@ -237,7 +241,7 @@ end
     # Copy remaining entries from B
     while i_B < end_B
         rowval_C[i_C] = rowval_B[i_B]
-        nzval_C[i_C] = nzval_B[i_B]
+        nzval_C[i_C] = CONJB ? conj(nzval_B[i_B]) : nzval_B[i_B]
         i_B += 1
         i_C += 1
     end
