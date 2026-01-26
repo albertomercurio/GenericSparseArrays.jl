@@ -452,3 +452,87 @@ function LinearAlgebra.kron(A::DeviceSparseMatrixCSR, B::DeviceSparseMatrixCSR)
     C_coo = kron(A_coo, B_coo)
     return DeviceSparseMatrixCSR(C_coo)
 end
+
+"""
+    *(A::DeviceSparseMatrixCSR, B::DeviceSparseMatrixCSR)
+
+Multiply two sparse matrices in CSR format. Both matrices must have compatible dimensions
+(number of columns of A equals number of rows of B) and be on the same backend (device).
+
+The multiplication is performed using the standard sparse matrix multiplication algorithm
+from SparseArrays.jl.
+
+# Examples
+```jldoctest
+julia> using DeviceSparseArrays, SparseArrays
+
+julia> A_coo = DeviceSparseMatrixCOO(sparse([1, 2], [1, 2], [2.0, 3.0], 2, 2));
+
+julia> B_coo = DeviceSparseMatrixCOO(sparse([1, 2], [1, 2], [4.0, 5.0], 2, 2));
+
+julia> A = DeviceSparseMatrixCSR(A_coo);
+
+julia> B = DeviceSparseMatrixCSR(B_coo);
+
+julia> C = A * B;
+
+julia> collect(C)
+2×2 Matrix{Float64}:
+ 8.0   0.0
+ 0.0  15.0
+```
+"""
+function Base.:(*)(A::DeviceSparseMatrixCSR, B::DeviceSparseMatrixCSR)
+    size(A, 2) == size(B, 1) || throw(
+        DimensionMismatch(
+            "second dimension of A, $(size(A,2)), does not match first dimension of B, $(size(B,1))",
+        ),
+    )
+
+    backend_A = get_backend(A)
+    backend_B = get_backend(B)
+    backend_A == backend_B ||
+        throw(ArgumentError("Both matrices must have the same backend"))
+
+    # Convert to SparseMatrixCSC, multiply using standard library, convert back
+    A_sparse = SparseMatrixCSC(A)
+    B_sparse = SparseMatrixCSC(B)
+    C_sparse = A_sparse * B_sparse
+    C = DeviceSparseMatrixCSR(C_sparse)
+    
+    # Adapt to the same backend as A and B
+    return Adapt.adapt(backend_A, C)
+end
+
+# Multiplication with transpose/adjoint support
+for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:DeviceSparseMatrixCSR)
+    for (wrapb, transb, conjb, unwrapb, whereT2) in trans_adj_wrappers(:DeviceSparseMatrixCSR)
+        # Skip the case where both are not transposed (already handled above)
+        (transa == false && transb == false) && continue
+        
+        TypeA = wrapa(:(T1))
+        TypeB = wrapb(:(T2))
+        
+        @eval function Base.:(*)(A::$TypeA, B::$TypeB) where {$(whereT1(:T1)),$(whereT2(:T2))}
+            size(A, 2) == size(B, 1) || throw(
+                DimensionMismatch(
+                    "second dimension of A, $(size(A,2)), does not match first dimension of B, $(size(B,1))",
+                ),
+            )
+            
+            backend_A = get_backend($(unwrapa(:A)))
+            backend_B = get_backend($(unwrapb(:B)))
+            backend_A == backend_B ||
+                throw(ArgumentError("Both matrices must have the same backend"))
+            
+            # Convert to SparseMatrixCSC (handles transpose/adjoint), multiply, convert back
+            A_sparse = SparseMatrixCSC(A)
+            B_sparse = SparseMatrixCSC(B)
+            C_sparse = A_sparse * B_sparse
+            C = DeviceSparseMatrixCSR(C_sparse)
+            
+            # Adapt to the same backend as A and B
+            return Adapt.adapt(backend_A, C)
+        end
+    end
+end
