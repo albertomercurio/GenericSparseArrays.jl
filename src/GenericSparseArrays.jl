@@ -1,7 +1,7 @@
 module GenericSparseArrays
 
 using LinearAlgebra
-import LinearAlgebra: wrap, copymutable_oftype, __normalize!, kron
+import LinearAlgebra: wrap, copymutable_oftype, __normalize!, kron, Diagonal
 using SparseArrays
 import SparseArrays: SparseVector, SparseMatrixCSC
 import SparseArrays: getcolptr, getrowval, getnzval, nonzeroinds

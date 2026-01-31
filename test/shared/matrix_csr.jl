@@ -353,17 +353,48 @@ function shared_test_linearalgebra_matrix_csr(
                 # Test with rectangular matrices
                 A_sparse = SparseMatrixCSC{T, int_types[end]}(sprand(T, 30, 25, 0.1))
                 B_sparse = SparseMatrixCSC{T, int_types[end]}(sprand(T, 20, 15, 0.1))
+                D_diag = Diagonal(rand(T, 4))
 
                 A = adapt(op, GenericSparseMatrixCSR(A_sparse))
                 B = adapt(op, GenericSparseMatrixCSR(B_sparse))
+                D1 = adapt(op, D_diag)
+                D2 = Diagonal(FillArrays.Fill(T(2), 4))
 
-                C = kron(A, B)
-                C_expected = kron(A_sparse, B_sparse)
+                for (op_A, op_B) in Iterators.product(
+                        (identity, transpose, adjoint),
+                        (identity, transpose, adjoint),
+                    )
 
-                @test size(C) == size(C_expected)
-                @test nnz(C) == nnz(C_expected)
-                @test Matrix(SparseMatrixCSC(C)) ≈ Matrix(C_expected)
-                @test C isa GenericSparseMatrixCSR
+                    C = kron(op_A(A), op_B(B))
+                    C_expected = kron(op_A(A_sparse), op_B(B_sparse))
+
+                    @test size(C) == size(C_expected)
+                    @test nnz(C) == nnz(C_expected)
+                    @test Matrix(SparseMatrixCSC(C)) ≈ Matrix(C_expected)
+                    @test C isa GenericSparseMatrixCSR
+
+                    # Test with Diagonal matrix
+                    C = kron(D1, op_B(B))
+                    C_expected = kron(D_diag, op_B(B_sparse))
+                    @test SparseMatrixCSC(C) ≈ C_expected
+                    @test C isa GenericSparseMatrixCSR
+
+                    C = kron(op_A(A), D1)
+                    C_expected = kron(op_A(A_sparse), D_diag)
+                    @test SparseMatrixCSC(C) ≈ C_expected
+                    @test C isa GenericSparseMatrixCSR
+
+                    # Test with FillArrays Diagonal matrix
+                    C = kron(D2, op_B(B))
+                    C_expected = kron(D2, op_B(B_sparse))
+                    @test SparseMatrixCSC(C) ≈ C_expected
+                    @test C isa GenericSparseMatrixCSR
+
+                    C = kron(op_A(A), D2)
+                    C_expected = kron(op_A(A_sparse), D2)
+                    @test SparseMatrixCSC(C) ≈ C_expected
+                    @test C isa GenericSparseMatrixCSR
+                end
             end
         end
     end

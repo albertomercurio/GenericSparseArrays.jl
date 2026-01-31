@@ -182,6 +182,79 @@ end
     end
 end
 
+# Kernel for computing Kronecker product of Diagonal (left) and COO (right)
+# kron(D, B) where D is n×n diagonal creates n diagonal blocks of B scaled by D[i,i]
+@kernel inbounds = true function kernel_kron_diag_coo!(
+        rowind_C,
+        colind_C,
+        nzval_C,
+        @Const(diag_vals),  # Diagonal values of D
+        @Const(rowind_B),
+        @Const(colind_B),
+        @Const(nzval_B),
+        @Const(m_B::Int),
+        @Const(n_B::Int),
+    )
+    idx = @index(Global, Linear)
+
+    n_D = length(diag_vals)
+    nnz_B = length(nzval_B)
+
+    if idx <= n_D * nnz_B
+        # Compute which diagonal element and which B element we're combining
+        idx_D = div(idx - 1, nnz_B) + 1
+        idx_B = mod(idx - 1, nnz_B) + 1
+
+        d_val = diag_vals[idx_D]
+
+        i_B = rowind_B[idx_B]
+        j_B = colind_B[idx_B]
+        val_B = nzval_B[idx_B]
+
+        # Result position: block (idx_D, idx_D) contains d_val * B
+        # Row: (idx_D - 1) * m_B + i_B
+        # Col: (idx_D - 1) * n_B + j_B
+        rowind_C[idx] = (idx_D - 1) * m_B + i_B
+        colind_C[idx] = (idx_D - 1) * n_B + j_B
+        nzval_C[idx] = d_val * val_B
+    end
+end
+
+# Kernel for computing Kronecker product of COO (left) and Diagonal (right)
+# kron(A, D) where D is p×p diagonal: each A[i,j] creates a p×p diagonal block scaled by A[i,j]
+@kernel inbounds = true function kernel_kron_coo_diag!(
+        rowind_C,
+        colind_C,
+        nzval_C,
+        @Const(rowind_A),
+        @Const(colind_A),
+        @Const(nzval_A),
+        @Const(diag_vals),  # Diagonal values of D
+        @Const(p::Int),  # Size of D (p×p)
+    )
+    idx = @index(Global, Linear)
+
+    nnz_A = length(nzval_A)
+
+    if idx <= nnz_A * p
+        # Compute which A element and which diagonal element we're combining
+        idx_A = div(idx - 1, p) + 1
+        idx_D = mod(idx - 1, p) + 1
+
+        i_A = rowind_A[idx_A]
+        j_A = colind_A[idx_A]
+        val_A = nzval_A[idx_A]
+        d_val = diag_vals[idx_D]
+
+        # Result position: A[i_A, j_A] creates block at (i_A, j_A) with diagonal entry at (idx_D, idx_D)
+        # Row: (i_A - 1) * p + idx_D
+        # Col: (j_A - 1) * p + idx_D
+        rowind_C[idx] = (i_A - 1) * p + idx_D
+        colind_C[idx] = (j_A - 1) * p + idx_D
+        nzval_C[idx] = val_A * d_val
+    end
+end
+
 # Kernel for marking duplicate entries in sorted COO format
 # Returns a mask where mask[i] = true if entry i should be kept (first occurrence or sum)
 @kernel inbounds = true function kernel_mark_unique_coo!(

@@ -301,28 +301,6 @@ function _add_sparse_to_dense!(C::DenseMatrix, A::GenericSparseMatrixCSC)
     return C
 end
 
-"""
-    +(A::GenericSparseMatrixCSC, B::GenericSparseMatrixCSC)
-
-Add two sparse matrices in CSC format. Both matrices must have the same dimensions
-and be on the same backend (device).
-
-# Examples
-```jldoctest
-julia> using GenericSparseArrays, SparseArrays
-
-julia> A = GenericSparseMatrixCSC(sparse([1, 2], [1, 2], [1.0, 2.0], 2, 2));
-
-julia> B = GenericSparseMatrixCSC(sparse([1, 2], [2, 1], [3.0, 4.0], 2, 2));
-
-julia> C = A + B;
-
-julia> collect(C)
-2×2 Matrix{Float64}:
- 1.0  3.0
- 4.0  2.0
-```
-"""
 function Base.:+(A::GenericSparseMatrixCSC, B::GenericSparseMatrixCSC)
     size(A) == size(B) || throw(
         DimensionMismatch(
@@ -419,64 +397,62 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:GenericSpars
     end
 end
 
-"""
-    kron(A::GenericSparseMatrixCSC, B::GenericSparseMatrixCSC)
+for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:GenericSparseMatrixCSC)
+    for (wrapb, transb, conjb, unwrapb, whereT2) in trans_adj_wrappers(:GenericSparseMatrixCSC)
+        TypeA = wrapa(:(T1))
+        TypeB = wrapb(:(T2))
 
-Compute the Kronecker product of two sparse matrices in CSC format.
+        @eval function LinearAlgebra.kron(
+                A::$TypeA,
+                B::$TypeB,
+            ) where {$(whereT1(:T1)), $(whereT2(:T2))}
+            # Convert to COO, compute kron, convert back to CSC
+            A_coo = GenericSparseMatrixCOO(A)
+            B_coo = GenericSparseMatrixCOO(B)
+            C_coo = kron(A_coo, B_coo)
+            return GenericSparseMatrixCSC(C_coo)
+        end
+    end
+end
 
-The Kronecker product is computed by converting to COO format, computing the 
-product, and converting back to CSC format.
-
-# Examples
-```jldoctest
-julia> using GenericSparseArrays, SparseArrays
-
-julia> A = GenericSparseMatrixCSC(sparse([1, 2], [1, 2], [1.0, 2.0], 2, 2));
-
-julia> B = GenericSparseMatrixCSC(sparse([1, 2], [1, 2], [3.0, 4.0], 2, 2));
-
-julia> C = kron(A, B);
-
-julia> size(C)
-(4, 4)
-
-julia> nnz(C)
-4
-```
-"""
-function LinearAlgebra.kron(A::GenericSparseMatrixCSC, B::GenericSparseMatrixCSC)
-    # Convert to COO, compute kron, convert back to CSC
-    A_coo = GenericSparseMatrixCOO(A)
+function LinearAlgebra.kron(D::Diagonal, B::GenericSparseMatrixCSC)
     B_coo = GenericSparseMatrixCOO(B)
-    C_coo = kron(A_coo, B_coo)
+    C_coo = kron(D, B_coo)
     return GenericSparseMatrixCSC(C_coo)
 end
 
-"""
-    *(A::GenericSparseMatrixCSC, B::GenericSparseMatrixCSC)
+function LinearAlgebra.kron(A::GenericSparseMatrixCSC, D::Diagonal)
+    A_coo = GenericSparseMatrixCOO(A)
+    C_coo = kron(A_coo, D)
+    return GenericSparseMatrixCSC(C_coo)
+end
 
-Multiply two sparse matrices in CSC format. Both matrices must have compatible dimensions
-(number of columns of A equals number of rows of B) and be on the same backend (device).
+# kron with Diagonal and transpose/adjoint wrappers for CSC
+for (wrap, trans, conj, unwrap, whereT) in trans_adj_wrappers(:GenericSparseMatrixCSC)
+    trans == false && continue
 
-The multiplication uses GPU-compatible kernels for efficient sparse-sparse matrix
-multiplication (SpGEMM).
+    TypeB = wrap(:(T))
 
-# Examples
-```jldoctest
-julia> using GenericSparseArrays, SparseArrays
+    @eval function LinearAlgebra.kron(
+            D::Diagonal{Tv1},
+            B::$TypeB,
+        ) where {Tv1, $(whereT(:T))}
+        B_coo = GenericSparseMatrixCOO(B)
+        C_coo = kron(D, B_coo)
+        return GenericSparseMatrixCSC(C_coo)
+    end
 
-julia> A = GenericSparseMatrixCSC(sparse([1, 2], [1, 2], [2.0, 3.0], 2, 2));
+    TypeA = wrap(:(T))
+    @eval function LinearAlgebra.kron(
+            A::$TypeA,
+            D::Diagonal{Tv2},
+        ) where {$(whereT(:T)), Tv2}
+        A_coo = GenericSparseMatrixCOO(A)
+        C_coo = kron(A_coo, D)
+        return GenericSparseMatrixCSC(C_coo)
+    end
+end
 
-julia> B = GenericSparseMatrixCSC(sparse([1, 2], [1, 2], [4.0, 5.0], 2, 2));
-
-julia> C = A * B;
-
-julia> collect(C)
-2×2 Matrix{Float64}:
- 8.0   0.0
- 0.0  15.0
-```
-"""
 function Base.:(*)(A::GenericSparseMatrixCSC, B::GenericSparseMatrixCSC)
     size(A, 2) == size(B, 1) || throw(
         DimensionMismatch(
