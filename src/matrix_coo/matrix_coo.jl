@@ -309,31 +309,6 @@ function _add_sparse_to_dense!(C::DenseMatrix, A::GenericSparseMatrixCOO)
     return C
 end
 
-"""
-    +(A::GenericSparseMatrixCOO, B::GenericSparseMatrixCOO)
-
-Add two sparse matrices in COO format. Both matrices must have the same dimensions
-and be on the same backend (device).
-
-The result is a COO matrix with entries from both A and B properly merged,
-with duplicate entries (same row and column) combined by summing their values.
-
-# Examples
-```jldoctest
-julia> using GenericSparseArrays, SparseArrays
-
-julia> A = GenericSparseMatrixCOO(sparse([1, 2], [1, 2], [1.0, 2.0], 2, 2));
-
-julia> B = GenericSparseMatrixCOO(sparse([1, 2], [2, 1], [3.0, 4.0], 2, 2));
-
-julia> C = A + B;
-
-julia> collect(C)
-2×2 Matrix{Float64}:
- 1.0  3.0
- 4.0  2.0
-```
-"""
 function Base.:+(A::GenericSparseMatrixCOO, B::GenericSparseMatrixCOO)
     size(A) == size(B) || throw(
         DimensionMismatch(
@@ -538,101 +513,6 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:GenericSpars
     end
 end
 
-"""
-    kron(A::GenericSparseMatrixCOO, B::GenericSparseMatrixCOO)
-
-Compute the Kronecker product of two sparse matrices in COO format.
-
-The Kronecker product of two matrices `A` (size m×n) and `B` (size p×q) 
-is an (m*p)×(n*q) matrix formed by multiplying each element of `A` by the 
-entire matrix `B`.
-
-# Examples
-```jldoctest
-julia> using GenericSparseArrays, SparseArrays
-
-julia> A = GenericSparseMatrixCOO(sparse([1, 2], [1, 2], [1.0, 2.0], 2, 2));
-
-julia> B = GenericSparseMatrixCOO(sparse([1, 2], [1, 2], [3.0, 4.0], 2, 2));
-
-julia> C = kron(A, B);
-
-julia> size(C)
-(4, 4)
-
-julia> nnz(C)
-4
-```
-"""
-function LinearAlgebra.kron(
-        A::GenericSparseMatrixCOO{Tv1, Ti1},
-        B::GenericSparseMatrixCOO{Tv2, Ti2},
-    ) where {Tv1, Ti1, Tv2, Ti2}
-    # Result dimensions
-    m_C = size(A, 1) * size(B, 1)
-    n_C = size(A, 2) * size(B, 2)
-    nnz_C = nnz(A) * nnz(B)
-
-    # Determine result types
-    Tv = promote_type(Tv1, Tv2)
-    Ti = promote_type(Ti1, Ti2)
-
-    # Check backend compatibility
-    backend_A = get_backend(A)
-    backend_B = get_backend(B)
-    backend_A == backend_B || throw(ArgumentError("Both arrays must have the same backend"))
-
-    # Allocate output arrays
-    rowind_C = similar(A.rowind, Ti, nnz_C)
-    colind_C = similar(A.colind, Ti, nnz_C)
-    nzval_C = similar(A.nzval, Tv, nnz_C)
-
-    # Launch kernel
-    kernel! = kernel_kron_coo!(backend_A)
-    kernel!(
-        A.rowind,
-        A.colind,
-        A.nzval,
-        B.rowind,
-        B.colind,
-        B.nzval,
-        rowind_C,
-        colind_C,
-        nzval_C,
-        size(B, 1),
-        size(B, 2);
-        ndrange = nnz_C,
-    )
-
-    return GenericSparseMatrixCOO(m_C, n_C, rowind_C, colind_C, nzval_C)
-end
-
-"""
-    *(A::GenericSparseMatrixCOO, B::GenericSparseMatrixCOO)
-
-Multiply two sparse matrices in COO format. Both matrices must have compatible dimensions
-(number of columns of A equals number of rows of B) and be on the same backend (device).
-
-The multiplication converts to CSC format, performs the multiplication with GPU-compatible
-kernels, and converts back to COO format. This approach is used for all cases including
-transpose/adjoint since COO doesn't have an efficient direct multiplication algorithm.
-
-# Examples
-```jldoctest
-julia> using GenericSparseArrays, SparseArrays
-
-julia> A = GenericSparseMatrixCOO(sparse([1, 2], [1, 2], [2.0, 3.0], 2, 2));
-
-julia> B = GenericSparseMatrixCOO(sparse([1, 2], [1, 2], [4.0, 5.0], 2, 2));
-
-julia> C = A * B;
-
-julia> collect(C)
-2×2 Matrix{Float64}:
- 8.0   0.0
- 0.0  15.0
-```
-"""
 function Base.:(*)(A::GenericSparseMatrixCOO, B::GenericSparseMatrixCOO)
     size(A, 2) == size(B, 1) || throw(
         DimensionMismatch(
@@ -687,5 +567,175 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:GenericSpars
             C_csc = A_csc * B_csc
             return GenericSparseMatrixCOO(C_csc)
         end
+    end
+end
+
+function LinearAlgebra.kron(
+        A::GenericSparseMatrixCOO{Tv1, Ti1},
+        B::GenericSparseMatrixCOO{Tv2, Ti2},
+    ) where {Tv1, Ti1, Tv2, Ti2}
+    # Result dimensions
+    m_C = size(A, 1) * size(B, 1)
+    n_C = size(A, 2) * size(B, 2)
+    nnz_C = nnz(A) * nnz(B)
+
+    # Determine result types
+    Tv = promote_type(Tv1, Tv2)
+    Ti = promote_type(Ti1, Ti2)
+
+    # Check backend compatibility
+    backend_A = get_backend(A)
+    backend_B = get_backend(B)
+    backend_A == backend_B || throw(ArgumentError("Both arrays must have the same backend"))
+
+    # Allocate output arrays
+    rowind_C = similar(A.rowind, Ti, nnz_C)
+    colind_C = similar(A.colind, Ti, nnz_C)
+    nzval_C = similar(A.nzval, Tv, nnz_C)
+
+    # Launch kernel
+    kernel! = kernel_kron_coo!(backend_A)
+    kernel!(
+        A.rowind,
+        A.colind,
+        A.nzval,
+        B.rowind,
+        B.colind,
+        B.nzval,
+        rowind_C,
+        colind_C,
+        nzval_C,
+        size(B, 1),
+        size(B, 2);
+        ndrange = nnz_C,
+    )
+
+    return GenericSparseMatrixCOO(m_C, n_C, rowind_C, colind_C, nzval_C)
+end
+
+for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:GenericSparseMatrixCOO)
+    for (wrapb, transb, conjb, unwrapb, whereT2) in trans_adj_wrappers(:GenericSparseMatrixCOO)
+        # Skip the case where both are not transposed (already handled above)
+        (transa == false && transb == false) && continue
+
+        TypeA = wrapa(:(T1))
+        TypeB = wrapb(:(T2))
+
+        @eval function LinearAlgebra.kron(
+                A::$TypeA,
+                B::$TypeB,
+            ) where {$(whereT1(:T1)), $(whereT2(:T2))}
+            return kron(GenericSparseMatrixCOO(A), GenericSparseMatrixCOO(B))
+        end
+    end
+end
+
+# =============================================================================
+# Kronecker product with Diagonal matrices
+# =============================================================================
+
+function LinearAlgebra.kron(
+        D::Diagonal{Tv1},
+        B::GenericSparseMatrixCOO{Tv2, Ti},
+    ) where {Tv1, Tv2, Ti}
+    n_D = size(D, 1)
+    m_B, n_B = size(B)
+
+    # Result dimensions
+    m_C = n_D * m_B
+    n_C = n_D * n_B
+    nnz_C = n_D * nnz(B)
+
+    # Determine result types
+    Tv = promote_type(Tv1, Tv2)
+
+    backend = get_backend(B)
+
+    # Allocate output arrays
+    rowind_C = similar(B.rowind, Ti, nnz_C)
+    colind_C = similar(B.colind, Ti, nnz_C)
+    nzval_C = similar(B.nzval, Tv, nnz_C)
+
+    # Launch kernel
+    kernel! = kernel_kron_diag_coo!(backend)
+    kernel!(
+        rowind_C,
+        colind_C,
+        nzval_C,
+        D.diag,
+        B.rowind,
+        B.colind,
+        B.nzval,
+        m_B,
+        n_B;
+        ndrange = nnz_C,
+    )
+
+    return GenericSparseMatrixCOO(m_C, n_C, rowind_C, colind_C, nzval_C)
+end
+
+function LinearAlgebra.kron(
+        A::GenericSparseMatrixCOO{Tv1, Ti},
+        D::Diagonal{Tv2},
+    ) where {Tv1, Ti, Tv2}
+    m_A, n_A = size(A)
+    p = size(D, 1)  # D is p×p
+
+    # Result dimensions
+    m_C = m_A * p
+    n_C = n_A * p
+    nnz_C = nnz(A) * p
+
+    # Determine result types
+    Tv = promote_type(Tv1, Tv2)
+
+    backend = get_backend(A)
+
+    # Allocate output arrays
+    rowind_C = similar(A.rowind, Ti, nnz_C)
+    colind_C = similar(A.colind, Ti, nnz_C)
+    nzval_C = similar(A.nzval, Tv, nnz_C)
+
+    # Launch kernel
+    kernel! = kernel_kron_coo_diag!(backend)
+    kernel!(
+        rowind_C,
+        colind_C,
+        nzval_C,
+        A.rowind,
+        A.colind,
+        A.nzval,
+        D.diag,
+        p;
+        ndrange = nnz_C,
+    )
+
+    return GenericSparseMatrixCOO(m_C, n_C, rowind_C, colind_C, nzval_C)
+end
+
+# kron with Diagonal and transpose/adjoint wrappers
+for (wrap, trans, conj, unwrap, whereT) in trans_adj_wrappers(:GenericSparseMatrixCOO)
+    # Skip identity case (already handled above)
+    trans == false && continue
+
+    TypeB = wrap(:(T))
+
+    # kron(D, op(B))
+    @eval function LinearAlgebra.kron(
+            D::Diagonal{Tv1},
+            B::$TypeB,
+        ) where {Tv1, $(whereT(:T))}
+        B_coo = GenericSparseMatrixCOO(B)
+        return kron(D, B_coo)
+    end
+
+    # kron(op(A), D)
+    TypeA = wrap(:(T))
+    @eval function LinearAlgebra.kron(
+            A::$TypeA,
+            D::Diagonal{Tv2},
+        ) where {$(whereT(:T)), Tv2}
+        A_coo = GenericSparseMatrixCOO(A)
+        return kron(A_coo, D)
     end
 end

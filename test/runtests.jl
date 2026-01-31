@@ -4,6 +4,7 @@ using JET
 using GenericSparseArrays
 using JLArrays
 using Adapt
+using FillArrays
 
 using LinearAlgebra
 using SparseArrays
@@ -103,7 +104,11 @@ if GROUP in ("All", "Code-Quality")
     include(joinpath(@__DIR__, "shared", "code_quality.jl"))
     @testset "Code quality (Aqua.jl)" begin
         ambiguities = true # VERSION > v"1.11"
-        Aqua.test_all(GenericSparseArrays; ambiguities = ambiguities)
+        Aqua.test_all(
+            GenericSparseArrays;
+            ambiguities = ambiguities,
+            stale_deps = (; ignore = [:FillArrays]),  # FillArrays is a weakdep for extension
+        )
     end
 
     @testset "Code linting (JET.jl)" verbose = true begin

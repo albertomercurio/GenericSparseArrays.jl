@@ -1,11 +1,12 @@
 name = "GenericSparseArrays"
 uuid = "da3fe0eb-88a8-4d14-ae1a-857c283e9c70"
-authors = ["Alberto Mercurio <alberto.mercurio96@gmail.com> and contributors"]
 version = "0.1.0"
+authors = ["Alberto Mercurio <alberto.mercurio96@gmail.com> and contributors"]
 
 [deps]
 AcceleratedKernels = "6a4ca0a5-0e36-4168-a932-d9be78d558f1"
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
+FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
 GPUArraysCore = "46192b85-c4d5-4398-a991-12ede77f4527"
 KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
@@ -15,11 +16,13 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 JLArrays = "27aeb0d3-9eb9-45fb-866b-73c2ecf80fcb"
 
 [extensions]
+GenericSparseArraysFillArraysExt = "FillArrays"
 GenericSparseArraysJLArraysExt = "JLArrays"
 
 [compat]
 AcceleratedKernels = "0.4"
 Adapt = "4"
+FillArrays = "1"
 GPUArraysCore = "0.2.0"
 JLArrays = "0.3"
 KernelAbstractions = "0.9"

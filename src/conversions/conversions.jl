@@ -123,6 +123,30 @@ function GenericSparseMatrixCSR(
 end
 
 # ============================================================================
+# Transpose and Adjoint conversions for COO
+# ============================================================================
+
+GenericSparseMatrixCOO(A::GenericSparseMatrixCOO) = A
+
+GenericSparseMatrixCOO(A::Transpose{Tv, <:GenericSparseMatrixCOO}) where {Tv} =
+    GenericSparseMatrixCOO(
+    size(A, 1),
+    size(A, 2),
+    A.parent.colind,
+    A.parent.rowind,
+    A.parent.nzval,
+)
+
+GenericSparseMatrixCOO(A::Adjoint{Tv, <:GenericSparseMatrixCOO}) where {Tv} =
+    GenericSparseMatrixCOO(
+    size(A, 1),
+    size(A, 2),
+    A.parent.colind,
+    A.parent.rowind,
+    conj.(A.parent.nzval),
+)
+
+# ============================================================================
 # CSC ↔ COO Conversions
 # ============================================================================
 
@@ -201,6 +225,29 @@ GenericSparseMatrixCSC(A::Adjoint{Tv, <:GenericSparseMatrixCOO}) where {Tv} =
     )
 )
 
+# Transpose and Adjoint conversions for CSC to COO
+function GenericSparseMatrixCOO(A::Transpose{Tv, <:GenericSparseMatrixCSC}) where {Tv}
+    parent_coo = GenericSparseMatrixCOO(A.parent)
+    return GenericSparseMatrixCOO(
+        size(A, 1),
+        size(A, 2),
+        parent_coo.colind,
+        parent_coo.rowind,
+        parent_coo.nzval,
+    )
+end
+
+function GenericSparseMatrixCOO(A::Adjoint{Tv, <:GenericSparseMatrixCSC}) where {Tv}
+    parent_coo = GenericSparseMatrixCOO(A.parent)
+    return GenericSparseMatrixCOO(
+        size(A, 1),
+        size(A, 2),
+        parent_coo.colind,
+        parent_coo.rowind,
+        conj.(parent_coo.nzval),
+    )
+end
+
 # ============================================================================
 # CSR ↔ COO Conversions
 # ============================================================================
@@ -255,4 +302,27 @@ function GenericSparseMatrixCSR(A::GenericSparseMatrixCOO{Tv, Ti}) where {Tv, Ti
     @allowscalar rowptr[m + 1] = Ti(nnz_count + 1)
 
     return GenericSparseMatrixCSR(m, n, rowptr, colind_sorted, nzval_sorted)
+end
+
+# Transpose and Adjoint conversions for CSR to COO
+function GenericSparseMatrixCOO(A::Transpose{Tv, <:GenericSparseMatrixCSR}) where {Tv}
+    parent_coo = GenericSparseMatrixCOO(A.parent)
+    return GenericSparseMatrixCOO(
+        size(A, 1),
+        size(A, 2),
+        parent_coo.colind,
+        parent_coo.rowind,
+        parent_coo.nzval,
+    )
+end
+
+function GenericSparseMatrixCOO(A::Adjoint{Tv, <:GenericSparseMatrixCSR}) where {Tv}
+    parent_coo = GenericSparseMatrixCOO(A.parent)
+    return GenericSparseMatrixCOO(
+        size(A, 1),
+        size(A, 2),
+        parent_coo.colind,
+        parent_coo.rowind,
+        conj.(parent_coo.nzval),
+    )
 end
