@@ -107,7 +107,7 @@ if GROUP in ("All", "Code-Quality")
         Aqua.test_all(
             GenericSparseArrays;
             ambiguities = ambiguities,
-            # stale_deps = (; ignore = [:FillArrays]),  # FillArrays is a weakdep for extension
+            stale_deps = (; ignore = [:FillArrays]),  # FillArrays is a weakdep for extension
         )
     end
 
