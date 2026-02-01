@@ -1,6 +1,6 @@
 name = "GenericSparseArrays"
 uuid = "da3fe0eb-88a8-4d14-ae1a-857c283e9c70"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Alberto Mercurio <alberto.mercurio96@gmail.com> and contributors"]
 
 [deps]
