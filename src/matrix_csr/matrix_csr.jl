@@ -354,6 +354,57 @@ function Base.:+(A::GenericSparseMatrixCSR, B::GenericSparseMatrixCSR)
     return dropzeros(C)
 end
 
+# Addition with UniformScaling
+function Base.:+(A::GenericSparseMatrixCSR{Tv, Ti}, J::UniformScaling) where {Tv, Ti}
+    m, n = size(A)
+    m == n || throw(DimensionMismatch("Matrix must be square to add UniformScaling."))
+    λ = J.λ
+    iszero(λ) && return copy(A)
+
+    backend = get_backend(A)
+
+    # Count which rows need new diagonal entries
+    needs_diag = similar(getrowptr(A), Bool, m)
+    kernel_count! = kernel_count_diag_entries_csr!(backend)
+    kernel_count!(needs_diag, getrowptr(A), getcolval(A); ndrange = (m,))
+
+    # Count extra entries needed
+    extra_per_row = similar(getrowptr(A), m)
+    extra_per_row .= ifelse.(needs_diag, one(Ti), zero(Ti))
+
+    # Build new rowptr
+    old_nnz_per_row = similar(getrowptr(A), m)
+    old_nnz_per_row .= view(getrowptr(A), 2:(m + 1)) .- view(getrowptr(A), 1:m)
+
+    new_nnz_per_row = old_nnz_per_row .+ extra_per_row
+    cumsum_nnz = _cumsum_AK(new_nnz_per_row)
+
+    new_rowptr = similar(getrowptr(A), m + 1)
+    new_rowptr[1:1] .= one(Ti)
+    new_rowptr[2:(m + 1)] .= cumsum_nnz .+ one(Ti)
+
+    # Allocate new arrays
+    total_nnz = @allowscalar new_rowptr[m + 1] - one(Ti)
+    Tv_new = promote_type(Tv, typeof(λ))
+    new_colval = similar(getcolval(A), total_nnz)
+    new_nzval = similar(nonzeros(A), Tv_new, total_nnz)
+
+    # Fill the new arrays
+    kernel_add! = kernel_add_uniformscaling_csr!(backend)
+    kernel_add!(
+        new_colval,
+        new_nzval,
+        new_rowptr,
+        getrowptr(A),
+        getcolval(A),
+        nonzeros(A),
+        Tv_new(λ);
+        ndrange = (m,),
+    )
+
+    return GenericSparseMatrixCSR(m, n, new_rowptr, new_colval, new_nzval)
+end
+
 # Addition with transpose/adjoint support
 for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:GenericSparseMatrixCSR)
     for (wrapb, transb, conjb, unwrapb, whereT2) in

@@ -383,6 +383,80 @@ function Base.:+(A::GenericSparseMatrixCOO, B::GenericSparseMatrixCOO)
     return dropzeros(C)
 end
 
+# Addition with UniformScaling
+function Base.:+(A::GenericSparseMatrixCOO{Tv, Ti}, J::UniformScaling) where {Tv, Ti}
+    m, n = size(A)
+    m == n || throw(DimensionMismatch("Matrix must be square to add UniformScaling."))
+    λ = J.λ
+    iszero(λ) && return copy(A)
+
+    backend = get_backend(A)
+
+    # For COO, we simply append diagonal entries and then sum duplicates
+    nnz_A = nnz(A)
+    nnz_concat = nnz_A + n
+
+    Tv_new = promote_type(Tv, typeof(λ))
+
+    # Allocate arrays for concatenated data
+    rowind_concat = similar(getrowind(A), nnz_concat)
+    colind_concat = similar(getcolind(A), nnz_concat)
+    nzval_concat = similar(nonzeros(A), Tv_new, nnz_concat)
+
+    # Copy A's entries
+    rowind_concat[1:nnz_A] .= getrowind(A)
+    colind_concat[1:nnz_A] .= getcolind(A)
+    nzval_concat[1:nnz_A] .= nonzeros(A)
+
+    # Add diagonal entries
+    kernel_fill! = kernel_fill_diagonal_coo!(backend)
+    kernel_fill!(rowind_concat, colind_concat, nzval_concat, Tv_new(λ), nnz_A; ndrange = (n,))
+
+    # Sort by (row, col) using keys
+    keys = similar(rowind_concat, Ti, nnz_concat)
+    kernel_make_keys! = kernel_make_csc_keys!(backend)
+    kernel_make_keys!(keys, rowind_concat, colind_concat, m; ndrange = (nnz_concat,))
+
+    # Sort using AcceleratedKernels
+    perm = _sortperm_AK(keys)
+
+    # Apply permutation to get sorted arrays
+    rowind_sorted = rowind_concat[perm]
+    colind_sorted = colind_concat[perm]
+    nzval_sorted = nzval_concat[perm]
+
+    # Mark unique entries (first occurrence of each (row, col) pair)
+    keep_mask = similar(rowind_sorted, Bool, nnz_concat)
+    kernel_mark! = kernel_mark_unique_coo!(backend)
+    kernel_mark!(keep_mask, rowind_sorted, colind_sorted, nnz_concat; ndrange = (nnz_concat,))
+
+    # Compute write indices using cumsum
+    write_indices = _cumsum_AK(keep_mask)
+    nnz_final = @allowscalar write_indices[nnz_concat]
+
+    # Allocate final arrays
+    rowind_C = similar(getrowind(A), nnz_final)
+    colind_C = similar(getcolind(A), nnz_final)
+    nzval_C = similar(nonzeros(A), Tv_new, nnz_final)
+
+    # Compact: merge duplicates by summing
+    kernel_compact! = kernel_compact_coo!(backend)
+    kernel_compact!(
+        rowind_C,
+        colind_C,
+        nzval_C,
+        rowind_sorted,
+        colind_sorted,
+        nzval_sorted,
+        write_indices,
+        nnz_concat;
+        ndrange = (nnz_concat,),
+    )
+
+    C = GenericSparseMatrixCOO(m, n, rowind_C, colind_C, nzval_C)
+    return dropzeros(C)
+end
+
 # Addition with transpose/adjoint support
 for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:GenericSparseMatrixCOO)
     for (wrapb, transb, conjb, unwrapb, whereT2) in

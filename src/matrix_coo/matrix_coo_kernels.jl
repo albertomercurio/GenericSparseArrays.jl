@@ -308,3 +308,18 @@ end
         end
     end
 end
+
+# Kernel for adding diagonal entries for UniformScaling addition
+@kernel inbounds = true function kernel_fill_diagonal_coo!(
+        rowind,
+        colind,
+        nzval,
+        @Const(λ),
+        @Const(offset),  # Starting index in arrays
+    )
+    i = @index(Global)
+
+    rowind[offset + i] = i
+    colind[offset + i] = i
+    nzval[offset + i] = λ
+end

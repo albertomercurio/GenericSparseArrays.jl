@@ -229,6 +229,55 @@ function shared_test_linearalgebra_matrix_csr(
         end
     end
 
+    @testset "UniformScaling Addition" begin
+        for T in (float_types..., complex_types...)
+            # Test with square matrix
+            A_sq = sprand(T, 20, 20, 0.2)
+            dA_sq = adapt(op, GenericSparseMatrixCSR(A_sq))
+
+            # Test A + I (identity)
+            result_I = dA_sq + I
+            expected_I = A_sq + I
+            @test collect(SparseMatrixCSC(result_I)) ≈ collect(expected_I)
+
+            # Test I + A (identity)
+            result_I2 = I + dA_sq
+            @test collect(SparseMatrixCSC(result_I2)) ≈ collect(expected_I)
+
+            # Test with scaled identity
+            α = T <: Complex ? T(2.0 + 1.0im) : T(3.0)
+            result_αI = dA_sq + (α * I)
+            expected_αI = A_sq + (α * I)
+            @test collect(SparseMatrixCSC(result_αI)) ≈ collect(expected_αI)
+
+            # Test subtraction
+            result_sub = dA_sq - (α * I)
+            expected_sub = A_sq - (α * I)
+            @test collect(SparseMatrixCSC(result_sub)) ≈ collect(expected_sub)
+
+            # Test J - A
+            result_sub2 = (α * I) - dA_sq
+            expected_sub2 = (α * I) - A_sq
+            @test collect(SparseMatrixCSC(result_sub2)) ≈ collect(expected_sub2)
+
+            # Test with non-square matrix throws DimensionMismatch
+            A_nonsq = sprand(T, 30, 20, 0.2)
+            dA_nonsq = adapt(op, GenericSparseMatrixCSR(A_nonsq))
+            @test_throws DimensionMismatch dA_nonsq + I
+
+            # Test with zero λ (should return copy)
+            result_zero = dA_sq + (zero(T) * I)
+            @test collect(SparseMatrixCSC(result_zero)) ≈ collect(A_sq)
+
+            # Test with sparse matrix that has no diagonal entries
+            A_nodiag = sparse([1, 2], [2, 1], T[1, 2], 3, 3)
+            dA_nodiag = adapt(op, GenericSparseMatrixCSR(A_nodiag))
+            result_nodiag = dA_nodiag + I
+            expected_nodiag = A_nodiag + I
+            @test collect(SparseMatrixCSC(result_nodiag)) ≈ collect(expected_nodiag)
+        end
+    end
+
     @testset "Matrix-Vector multiplication" begin
         for T in (int_types..., float_types..., complex_types...)
             for (op_A, op_B) in Iterators.product(
