@@ -407,3 +407,39 @@ end
         result[1] = false
     end
 end
+
+# Kernel to count non-zeros per column after filtering zeros
+@kernel inbounds = true function kernel_count_nonzeros_csc!(
+        nnz_per_col,
+        @Const(colptr),
+        @Const(nzval),
+    )
+    col = @index(Global)
+    count = 0
+    for j in colptr[col]:(colptr[col + 1] - 1)
+        if !iszero(nzval[j])
+            count += 1
+        end
+    end
+    nnz_per_col[col] = count
+end
+
+# Kernel to copy non-zero entries only (dropping zeros)
+@kernel inbounds = true function kernel_dropzeros_csc!(
+        new_rowval,
+        new_nzval,
+        @Const(new_colptr),
+        @Const(old_colptr),
+        @Const(old_rowval),
+        @Const(old_nzval),
+    )
+    col = @index(Global)
+    write_idx = new_colptr[col]
+    for j in old_colptr[col]:(old_colptr[col + 1] - 1)
+        if !iszero(old_nzval[j])
+            new_rowval[write_idx] = old_rowval[j]
+            new_nzval[write_idx] = old_nzval[j]
+            write_idx += 1
+        end
+    end
+end

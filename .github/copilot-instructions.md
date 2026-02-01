@@ -13,7 +13,9 @@ These guidelines give AI coding agents the minimum project-specific context to b
 - `docs/` (Documenter): `make.jl` sets up docs + doctests. `docs/src/index.md` auto-docs the module; adding docstrings automatically surfaces them.
 
 ## 3. Development Workflows
-- Run tests locally: `make test` from the repo root folder.
+- Run tests locally: `make test` from the repo root folder. Important: this runs with the latest stable Julia version, and might fail in some cases like code quality checks (Aqua, JET).
+- The tests are divided into GROUPs defined in `runtests.jl`. For example, to run only the tests for the CUDA backend, use `GROUP=CUDA make test`.
+- Avoid to run generic tests like `make test`. Instead, run tests for specific backends depending on the available hardware on your machine. For example prefer running `GROUP=CUDA make test` on a machine with an NVIDIA GPU or `GROUP=Metal make test` on an Apple Silicon machine.
 - Add a dependency: `julia --project -e 'using Pkg; Pkg.add("PackageName")'` from the repo root folder, then update `[compat]` manually with a bounded version.
 - Build docs locally: `make docs`.
 - Doctests: Any code block in docstrings marked for execution must pass CI doctest phase.
@@ -21,7 +23,7 @@ These guidelines give AI coding agents the minimum project-specific context to b
 - Always check in which directory you are running commands. Change directory to the repo root if needed.
 
 ## 4. Coding Conventions
-- Public API: add docstrings starting with a concise one-line summary, then details (Documenter picks them up).
+- Public API: add docstrings starting with a concise one-line summary, then details (Documenter picks them up). Write docstrings *only* for functions/types that are part of the package's public API, and not methods of other Modules (e.g., Base, LinearAlgebra, SparseArrays).
 - Keep internal helpers non-exported; prefix with an underscore only if truly private.
 - Avoid type piracy: only extend Base / external methods for types you own OR clearly justify in comments.
 - Prefer parametric methods that remain type-stable (JET will flag instability; address before committing).
@@ -32,7 +34,7 @@ These guidelines give AI coding agents the minimum project-specific context to b
 - Always test the same functionality on all the supported backends (CPU, GPU, etc.) to ensure consistent behavior and avoid repetitions when generating the problem. Make tests reusable across backends when possible using shared functions in the `test/shared` folder.
 - The test for different CPU/GPU architectures should be in a separate Julia environment, as each machine may not have all the backends available.
 - When you run tests locally, only tests for the CPU and CUDA backends, as the others are not always available.
-- All added code must pass Aqua + JET. If JET warns about type instability, refactor or add an inline comment explaining any intentional dynamic behavior.
+- All added code must pass Aqua + JET. If JET warns about type instability, refactor or add an inline comment explaining any intentional dynamic behavior. Usually code quality tests fail on the latest stable Julia version; prefer to run them on the latest LTS Julia version.
 
 ## 6. Documentation Patterns
 

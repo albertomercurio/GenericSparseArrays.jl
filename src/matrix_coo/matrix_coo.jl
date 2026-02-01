@@ -391,7 +391,9 @@ function Base.:+(A::GenericSparseMatrixCOO, B::GenericSparseMatrixCOO)
         ndrange = (nnz_concat,),
     )
 
-    return GenericSparseMatrixCOO(m, n, rowind_C, colind_C, nzval_C)
+    C = GenericSparseMatrixCOO(m, n, rowind_C, colind_C, nzval_C)
+    dropzeros!(C)
+    return C
 end
 
 # Addition with transpose/adjoint support
@@ -508,7 +510,13 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:GenericSpars
                 ndrange = (nnz_concat,),
             )
 
-            return GenericSparseMatrixCOO(m, n, rowind_C, colind_C, nzval_C)
+            C = GenericSparseMatrixCOO(m, n, rowind_C, colind_C, nzval_C)
+            dropzeros!(C)
+            return C
+        end
+
+        @eval function Base.:-(A::$TypeA, B::$TypeB) where {$(whereT1(:T1)), $(whereT2(:T2))}
+            return A + (-B)
         end
     end
 end
@@ -750,4 +758,111 @@ function LinearAlgebra.ishermitian(A::GenericSparseMatrixCOO)
     m, n = size(A)
     m == n || return false
     return ishermitian(GenericSparseMatrixCSC(A))
+end
+
+# Helper function to filter COO entries by mask
+function _filter_by_mask!(new_rowind, new_colind, new_nzval, rowind, colind, nzval, mask)
+    backend = get_backend(nzval)
+
+    # Compute prefix sum of mask to get write indices
+    mask_int = similar(rowind, Int)
+    mask_int .= mask
+    write_indices = _cumsum_AK(mask_int)
+
+    kernel! = _kernel_filter_coo!(backend)
+    kernel!(new_rowind, new_colind, new_nzval, rowind, colind, nzval, mask, write_indices; ndrange = length(nzval))
+    return nothing
+end
+
+@kernel inbounds = true function _kernel_filter_coo!(
+        new_rowind,
+        new_colind,
+        new_nzval,
+        @Const(rowind),
+        @Const(colind),
+        @Const(nzval),
+        @Const(mask),
+        @Const(write_indices),
+    )
+    i = @index(Global)
+    if mask[i]
+        idx = write_indices[i]
+        new_rowind[idx] = rowind[i]
+        new_colind[idx] = colind[i]
+        new_nzval[idx] = nzval[i]
+    end
+end
+
+# Internal implementation that writes into the provided arrays
+function _dropzeros_impl_coo!(new_rowind, new_colind, new_nzval, A::GenericSparseMatrixCOO, mask)
+    rowind = getrowind(A)
+    colind = getcolind(A)
+    nzval = nonzeros(A)
+
+    # Copy non-zero entries using mask
+    _filter_by_mask!(new_rowind, new_colind, new_nzval, rowind, colind, nzval, mask)
+    return nothing
+end
+
+function SparseArrays.dropzeros!(A::GenericSparseMatrixCOO)
+    nzval = nonzeros(A)
+    rowind = getrowind(A)
+    colind = getcolind(A)
+
+    # Find non-zero mask
+    mask = nzval .!= zero(eltype(nzval))
+
+    # Count non-zeros
+    total_nnz = sum(mask)
+
+    if total_nnz == length(nzval)
+        # No zeros to drop
+        return A
+    end
+
+    # Allocate temporary arrays for new data
+    new_rowind = similar(rowind, total_nnz)
+    new_colind = similar(colind, total_nnz)
+    new_nzval = similar(nzval, total_nnz)
+
+    # Fill the new arrays
+    _dropzeros_impl_coo!(new_rowind, new_colind, new_nzval, A, mask)
+
+    # Copy back to original arrays
+    resize!(A.rowind, total_nnz)
+    copyto!(A.rowind, new_rowind)
+    resize!(A.colind, total_nnz)
+    copyto!(A.colind, new_colind)
+    resize!(A.nzval, total_nnz)
+    copyto!(A.nzval, new_nzval)
+
+    return A
+end
+
+function SparseArrays.dropzeros(A::GenericSparseMatrixCOO)
+    m, n = size(A)
+    nzval = nonzeros(A)
+    rowind = getrowind(A)
+    colind = getcolind(A)
+
+    # Find non-zero mask
+    mask = nzval .!= zero(eltype(nzval))
+
+    # Count non-zeros
+    total_nnz = sum(mask)
+
+    if total_nnz == length(nzval)
+        # No zeros to drop, return a copy
+        return copy(A)
+    end
+
+    # Allocate new arrays
+    new_rowind = similar(rowind, total_nnz)
+    new_colind = similar(colind, total_nnz)
+    new_nzval = similar(nzval, total_nnz)
+
+    # Fill the new arrays
+    _dropzeros_impl_coo!(new_rowind, new_colind, new_nzval, A, mask)
+
+    return GenericSparseMatrixCOO(m, n, new_rowind, new_colind, new_nzval)
 end

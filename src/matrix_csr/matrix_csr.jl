@@ -362,7 +362,9 @@ function Base.:+(A::GenericSparseMatrixCSR, B::GenericSparseMatrixCSR)
         ndrange = (m,),
     )
 
-    return GenericSparseMatrixCSR(m, n, rowptr_C, colval_C, nzval_C)
+    C = GenericSparseMatrixCSR(m, n, rowptr_C, colval_C, nzval_C)
+    dropzeros!(C)
+    return C
 end
 
 # Addition with transpose/adjoint support
@@ -391,6 +393,10 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:GenericSpars
 
             # Convert back to CSR
             return GenericSparseMatrixCSR(result_csc)
+        end
+
+        @eval function Base.:-(A::$TypeA, B::$TypeB) where {$(whereT1(:T1)), $(whereT2(:T2))}
+            return A + (-B)
         end
     end
 end
@@ -600,4 +606,95 @@ function LinearAlgebra.ishermitian(A::GenericSparseMatrixCSR)
     kernel!(result, getrowptr(A), colvals(A), nonzeros(A), Val{true}(); ndrange = (m,))
 
     return @allowscalar result[1]
+end
+
+# Internal implementation that writes into the provided arrays
+function _dropzeros_impl_csr!(new_rowptr, new_colval, new_nzval, A::GenericSparseMatrixCSR)
+    m, n = size(A)
+    backend = get_backend(A)
+    Ti = eltype(getrowptr(A))
+
+    # Count non-zeros per row
+    nnz_per_row = similar(getrowptr(A), m)
+    kernel_count! = kernel_count_nonzeros_csr!(backend)
+    kernel_count!(nnz_per_row, getrowptr(A), nonzeros(A); ndrange = (m,))
+
+    # Build new rowptr
+    cumsum_nnz = _cumsum_AK(nnz_per_row)
+    fill!(view(new_rowptr, 1:1), one(Ti))
+    view(new_rowptr, 2:(m + 1)) .= cumsum_nnz .+ one(Ti)
+
+    # Get total number of non-zeros
+    total_nnz = @allowscalar new_rowptr[end] - one(Ti)
+
+    if total_nnz > 0
+        # Copy non-zero entries
+        kernel_drop! = kernel_dropzeros_csr!(backend)
+        kernel_drop!(
+            new_colval,
+            new_nzval,
+            new_rowptr,
+            getrowptr(A),
+            colvals(A),
+            nonzeros(A);
+            ndrange = (m,),
+        )
+    end
+
+    return total_nnz
+end
+
+function SparseArrays.dropzeros!(A::GenericSparseMatrixCSR)
+    m, n = size(A)
+    backend = get_backend(A)
+    Ti = eltype(getrowptr(A))
+
+    # Count non-zeros per row to determine new size
+    nnz_per_row = similar(getrowptr(A), m)
+    kernel_count! = kernel_count_nonzeros_csr!(backend)
+    kernel_count!(nnz_per_row, getrowptr(A), nonzeros(A); ndrange = (m,))
+
+    cumsum_nnz = _cumsum_AK(nnz_per_row)
+    total_nnz = @allowscalar cumsum_nnz[end]
+
+    # Allocate temporary arrays for new data
+    new_rowptr = similar(getrowptr(A))
+    new_colval = similar(colvals(A), total_nnz)
+    new_nzval = similar(nonzeros(A), total_nnz)
+
+    # Fill the new arrays
+    _dropzeros_impl_csr!(new_rowptr, new_colval, new_nzval, A)
+
+    # Copy back to original arrays
+    copyto!(A.rowptr, new_rowptr)
+    resize!(A.colval, total_nnz)
+    copyto!(A.colval, new_colval)
+    resize!(A.nzval, total_nnz)
+    copyto!(A.nzval, new_nzval)
+
+    return A
+end
+
+function SparseArrays.dropzeros(A::GenericSparseMatrixCSR)
+    m, n = size(A)
+    backend = get_backend(A)
+    Ti = eltype(getrowptr(A))
+
+    # Count non-zeros per row to determine new size
+    nnz_per_row = similar(getrowptr(A), m)
+    kernel_count! = kernel_count_nonzeros_csr!(backend)
+    kernel_count!(nnz_per_row, getrowptr(A), nonzeros(A); ndrange = (m,))
+
+    cumsum_nnz = _cumsum_AK(nnz_per_row)
+    total_nnz = @allowscalar cumsum_nnz[end]
+
+    # Allocate new arrays
+    new_rowptr = similar(getrowptr(A))
+    new_colval = similar(colvals(A), total_nnz)
+    new_nzval = similar(nonzeros(A), total_nnz)
+
+    # Fill the new arrays
+    _dropzeros_impl_csr!(new_rowptr, new_colval, new_nzval, A)
+
+    return GenericSparseMatrixCSR(m, n, new_rowptr, new_colval, new_nzval)
 end

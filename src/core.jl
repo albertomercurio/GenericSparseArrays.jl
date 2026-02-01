@@ -83,6 +83,9 @@ end
 
 Base.:+(B::DenseMatrix, A::AbstractGenericSparseMatrix) = A + B
 
+Base.:-(A::AbstractGenericSparseMatrix, B::Union{DenseMatrix, AbstractGenericSparseMatrix}) = A + (-B)
+Base.:-(B::DenseMatrix, A::AbstractGenericSparseMatrix) = B + (-A)
+
 LinearAlgebra.issymmetric(A::Transpose{<:Any, <:AbstractGenericSparseMatrix}) = issymmetric(parent(A))
 LinearAlgebra.issymmetric(A::Adjoint{<:Any, <:AbstractGenericSparseMatrix}) = issymmetric(parent(A))
 LinearAlgebra.ishermitian(A::Transpose{<:Any, <:AbstractGenericSparseMatrix}) = ishermitian(parent(A))

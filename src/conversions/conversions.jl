@@ -174,6 +174,15 @@ function GenericSparseMatrixCSC(A::GenericSparseMatrixCOO{Tv, Ti}) where {Tv, Ti
 
     backend = get_backend(A.nzval)
 
+    # Handle empty matrix case
+    if nnz_count == 0
+        colptr = similar(A.rowind, Ti, n + 1)
+        fill!(colptr, one(Ti))
+        rowind = similar(A.rowind, Ti, 0)
+        nzval = similar(A.nzval, Tv, 0)
+        return GenericSparseMatrixCSC(m, n, colptr, rowind, nzval)
+    end
+
     # Create keys for sorting: column first, then row
     keys = similar(A.rowind, Ti, nnz_count)
 
@@ -275,6 +284,15 @@ function GenericSparseMatrixCSR(A::GenericSparseMatrixCOO{Tv, Ti}) where {Tv, Ti
     nnz_count = nnz(A)
 
     backend = get_backend(A.nzval)
+
+    # Handle empty matrix case
+    if nnz_count == 0
+        rowptr = similar(A.rowind, Ti, m + 1)
+        fill!(rowptr, one(Ti))
+        colind = similar(A.rowind, Ti, 0)
+        nzval = similar(A.nzval, Tv, 0)
+        return GenericSparseMatrixCSR(m, n, rowptr, colind, nzval)
+    end
 
     # Create keys for sorting: row first, then column
     keys = similar(A.rowind, Ti, nnz_count)
