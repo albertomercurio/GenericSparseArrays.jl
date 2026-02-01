@@ -343,3 +343,67 @@ end
         end
     end
 end
+
+# Kernel for checking symmetry/hermitianity in CSC format
+# For each entry A[row, col], we need to check if A[col, row] exists and has the correct value
+# This kernel checks all entries in a given column
+@kernel inbounds = true function kernel_check_symmetry_csc!(
+        result,
+        @Const(colptr),
+        @Const(rowval),
+        @Const(nzval),
+        ::Val{HERMITIAN},
+    ) where {HERMITIAN}
+    col = @index(Global)
+
+    is_valid = true
+
+    # Iterate over all entries in this column
+    for idx in colptr[col]:(colptr[col + 1] - 1)
+        is_valid || break
+
+        row = rowval[idx]
+        val = nzval[idx]
+
+        # For diagonal elements, check self-conjugate property for hermitian
+        if row == col
+            if HERMITIAN && val != conj(val)
+                is_valid = false
+            end
+        else
+            # For off-diagonal: need to find A[col, row] (i.e., in column 'row', find entry at row 'col')
+            # Binary search in column 'row' for row index 'col'
+            lo = colptr[row]
+            hi = colptr[row + 1] - 1
+
+            found = false
+            while lo <= hi
+                mid = (lo + hi) ÷ 2
+                mid_row = rowval[mid]
+                if mid_row == col
+                    # Found the transpose entry
+                    trans_val = nzval[mid]
+                    expected = HERMITIAN ? conj(trans_val) : trans_val
+                    if val != expected
+                        is_valid = false
+                    end
+                    found = true
+                    break
+                elseif mid_row < col
+                    lo = mid + 1
+                else
+                    hi = mid - 1
+                end
+            end
+
+            # If transpose entry not found, matrix is not symmetric/hermitian
+            if !found
+                is_valid = false
+            end
+        end
+    end
+
+    if !is_valid
+        result[1] = false
+    end
+end

@@ -563,3 +563,41 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:GenericSpars
         end
     end
 end
+
+function LinearAlgebra.issymmetric(A::GenericSparseMatrixCSR)
+    m, n = size(A)
+    m == n || return false
+
+    # Empty matrix is symmetric
+    nnz(A) == 0 && return true
+
+    backend = get_backend(A)
+
+    # Result array (initialize to true)
+    result = similar(nonzeros(A), Bool, 1)
+    fill!(result, true)
+
+    kernel! = kernel_check_symmetry_csr!(backend)
+    kernel!(result, getrowptr(A), colvals(A), nonzeros(A), Val{false}(); ndrange = (m,))
+
+    return @allowscalar result[1]
+end
+
+function LinearAlgebra.ishermitian(A::GenericSparseMatrixCSR)
+    m, n = size(A)
+    m == n || return false
+
+    # Empty matrix is hermitian
+    nnz(A) == 0 && return true
+
+    backend = get_backend(A)
+
+    # Result array (initialize to true)
+    result = similar(nonzeros(A), Bool, 1)
+    fill!(result, true)
+
+    kernel! = kernel_check_symmetry_csr!(backend)
+    kernel!(result, getrowptr(A), colvals(A), nonzeros(A), Val{true}(); ndrange = (m,))
+
+    return @allowscalar result[1]
+end

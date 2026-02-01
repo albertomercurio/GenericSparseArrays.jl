@@ -92,6 +92,33 @@ function shared_test_linearalgebra_matrix_csr(
         end
     end
 
+    @testset "issymmetric and ishermitian" begin
+        for T in (complex_types...,)
+            n = 50
+            # Non-symmetric/non-hermitian matrix
+            A_nonsym = sprand(T, n, n, 0.1)
+            A_nonsym[1, 2] = 1.0 + 0.0im
+            A_nonsym[2, 1] = 2.0 + 1.0im
+            dA_nonsym = adapt(op, GenericSparseMatrixCSR(A_nonsym))
+            @test issymmetric(dA_nonsym) == false
+            @test ishermitian(dA_nonsym) == false
+            @test issymmetric(transpose(dA_nonsym)) == false
+            @test ishermitian(adjoint(dA_nonsym)) == false
+
+            # Symmetric matrix (complex symmetric is NOT hermitian)
+            A_sym = sparse(A_nonsym + transpose(A_nonsym))
+            dA_sym = adapt(op, GenericSparseMatrixCSR(A_sym))
+            @test issymmetric(dA_sym) == true
+            @test issymmetric(transpose(dA_sym)) == true
+
+            # Hermitian matrix (complex)
+            A_herm = sparse(A_nonsym + adjoint(A_nonsym))
+            dA_herm = adapt(op, GenericSparseMatrixCSR(A_herm))
+            @test ishermitian(dA_herm) == true
+            @test ishermitian(adjoint(dA_herm)) == true
+        end
+    end
+
     @testset "Three-argument dot" begin
         for T in (int_types..., float_types..., complex_types...)
             for op_A in (identity, transpose, adjoint)
