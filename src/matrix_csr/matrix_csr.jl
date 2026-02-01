@@ -85,18 +85,6 @@ function Base.zero(A::GenericSparseMatrixCSR)
     return GenericSparseMatrixCSR(A.m, A.n, rowptr, rowval, nzval)
 end
 
-function Base.:(*)(α::Number, A::GenericSparseMatrixCSR)
-    return GenericSparseMatrixCSR(
-        A.m,
-        A.n,
-        copy(getrowptr(A)),
-        copy(colvals(A)),
-        α .* nonzeros(A),
-    )
-end
-Base.:(*)(A::GenericSparseMatrixCSR, α::Number) = α * A
-Base.:(/)(A::GenericSparseMatrixCSR, α::Number) = (1 / α) * A
-
 function Base.:-(A::GenericSparseMatrixCSR)
     return GenericSparseMatrixCSR(A.m, A.n, copy(A.rowptr), copy(A.colval), -A.nzval)
 end
@@ -363,8 +351,7 @@ function Base.:+(A::GenericSparseMatrixCSR, B::GenericSparseMatrixCSR)
     )
 
     C = GenericSparseMatrixCSR(m, n, rowptr_C, colval_C, nzval_C)
-    dropzeros!(C)
-    return C
+    return dropzeros(C)
 end
 
 # Addition with transpose/adjoint support
@@ -656,6 +643,13 @@ function SparseArrays.dropzeros!(A::GenericSparseMatrixCSR)
 
     cumsum_nnz = _cumsum_AK(nnz_per_row)
     total_nnz = @allowscalar cumsum_nnz[end]
+
+    if total_nnz == 0
+        # All elements are zeros - some GPU backends (e.g., Metal) don't support
+        # resize to 0. Keep the stored zeros; users can use dropzeros() (non-mutating)
+        # which returns a new matrix with properly empty arrays.
+        return A
+    end
 
     # Allocate temporary arrays for new data
     new_rowptr = similar(getrowptr(A))

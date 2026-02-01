@@ -32,12 +32,16 @@ function LinearAlgebra.lmul!(x::Number, A::AbstractGenericSparseArray)
     return A
 end
 
-function LinearAlgebra.rdiv!(A::AbstractGenericSparseArray, x::Number)
-    rdiv!(nonzeros(A), x)
+function LinearAlgebra.rdiv!(A::AbstractGenericSparseArray{Tv}, x::Number) where {Tv}
+    rmul!(A, inv(Tv(x)))
     return A
 end
 
 Base.:+(A::AbstractGenericSparseArray) = copy(A)
+
+Base.:*(α::Number, A::AbstractGenericSparseArray) = lmul!(α, copy(A))
+Base.:*(A::AbstractGenericSparseArray, α::Number) = rmul!(copy(A), α)
+Base.:(/)(A::AbstractGenericSparseArray, α::Number) = rdiv!(copy(A), α)
 
 Base.:*(A::AbstractGenericSparseArray, J::UniformScaling) = A * J.λ
 Base.:*(J::UniformScaling, A::AbstractGenericSparseArray) = J.λ * A
