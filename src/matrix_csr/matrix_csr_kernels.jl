@@ -341,3 +341,67 @@ end
         end
     end
 end
+
+# Kernel for checking symmetry/hermitianity in CSR format
+# For each entry A[row, col], we need to check if A[col, row] exists and has the correct value
+# This kernel checks all entries in a given row
+@kernel inbounds = true function kernel_check_symmetry_csr!(
+        result,
+        @Const(rowptr),
+        @Const(colval),
+        @Const(nzval),
+        ::Val{HERMITIAN},
+    ) where {HERMITIAN}
+    row = @index(Global)
+
+    is_valid = true
+
+    # Iterate over all entries in this row
+    for idx in rowptr[row]:(rowptr[row + 1] - 1)
+        is_valid || break
+
+        col = colval[idx]
+        val = nzval[idx]
+
+        # For diagonal elements, check self-conjugate property for hermitian
+        if row == col
+            if HERMITIAN && val != conj(val)
+                is_valid = false
+            end
+        else
+            # For off-diagonal: need to find A[col, row] (i.e., in row 'col', find entry at column 'row')
+            # Binary search in row 'col' for column index 'row'
+            lo = rowptr[col]
+            hi = rowptr[col + 1] - 1
+
+            found = false
+            while lo <= hi
+                mid = (lo + hi) ÷ 2
+                mid_col = colval[mid]
+                if mid_col == row
+                    # Found the transpose entry
+                    trans_val = nzval[mid]
+                    expected = HERMITIAN ? conj(trans_val) : trans_val
+                    if val != expected
+                        is_valid = false
+                    end
+                    found = true
+                    break
+                elseif mid_col < row
+                    lo = mid + 1
+                else
+                    hi = mid - 1
+                end
+            end
+
+            # If transpose entry not found, matrix is not symmetric/hermitian
+            if !found
+                is_valid = false
+            end
+        end
+    end
+
+    if !is_valid
+        result[1] = false
+    end
+end

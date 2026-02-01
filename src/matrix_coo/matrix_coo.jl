@@ -739,3 +739,15 @@ for (wrap, trans, conj, unwrap, whereT) in trans_adj_wrappers(:GenericSparseMatr
         return kron(A_coo, D)
     end
 end
+
+function LinearAlgebra.issymmetric(A::GenericSparseMatrixCOO)
+    m, n = size(A)
+    m == n || return false
+    return issymmetric(GenericSparseMatrixCSC(A))
+end
+
+function LinearAlgebra.ishermitian(A::GenericSparseMatrixCOO)
+    m, n = size(A)
+    m == n || return false
+    return ishermitian(GenericSparseMatrixCSC(A))
+end

@@ -83,6 +83,11 @@ end
 
 Base.:+(B::DenseMatrix, A::AbstractGenericSparseMatrix) = A + B
 
+LinearAlgebra.issymmetric(A::Transpose{<:Any, <:AbstractGenericSparseMatrix}) = issymmetric(parent(A))
+LinearAlgebra.issymmetric(A::Adjoint{<:Any, <:AbstractGenericSparseMatrix}) = issymmetric(parent(A))
+LinearAlgebra.ishermitian(A::Transpose{<:Any, <:AbstractGenericSparseMatrix}) = ishermitian(parent(A))
+LinearAlgebra.ishermitian(A::Adjoint{<:Any, <:AbstractGenericSparseMatrix}) = ishermitian(parent(A))
+
 # Keep this at the end of the file
 trans_adj_wrappers(fmt) = (
     (T -> :($fmt{$T}), false, false, identity, T -> :($T)),
