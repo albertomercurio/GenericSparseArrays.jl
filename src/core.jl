@@ -86,9 +86,12 @@ function Base.:+(A::AbstractGenericSparseMatrix, B::DenseMatrix)
 end
 
 Base.:+(B::DenseMatrix, A::AbstractGenericSparseMatrix) = A + B
+Base.:+(J::UniformScaling, A::AbstractGenericSparseMatrix) = A + J
 
 Base.:-(A::AbstractGenericSparseMatrix, B::Union{DenseMatrix, AbstractGenericSparseMatrix}) = A + (-B)
+Base.:-(A::AbstractGenericSparseMatrix, J::UniformScaling) = A + (-J)
 Base.:-(B::DenseMatrix, A::AbstractGenericSparseMatrix) = B + (-A)
+Base.:-(J::UniformScaling, A::AbstractGenericSparseMatrix) = J + (-A)
 
 LinearAlgebra.issymmetric(A::Transpose{<:Any, <:AbstractGenericSparseMatrix}) = issymmetric(parent(A))
 LinearAlgebra.issymmetric(A::Adjoint{<:Any, <:AbstractGenericSparseMatrix}) = issymmetric(parent(A))

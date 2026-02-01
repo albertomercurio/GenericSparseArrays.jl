@@ -441,3 +441,69 @@ end
         end
     end
 end
+
+# Kernel for counting extra diagonal entries needed for UniformScaling addition
+# For each row, checks if the diagonal entry is not already stored
+@kernel inbounds = true function kernel_count_diag_entries_csr!(
+        needs_diag,
+        @Const(rowptr),
+        @Const(colval),
+    )
+    row = @index(Global)
+
+    # Check if diagonal entry exists in this row
+    diag_found = false
+    for j in rowptr[row]:(rowptr[row + 1] - 1)
+        if colval[j] == row
+            diag_found = true
+            break
+        end
+    end
+
+    needs_diag[row] = !diag_found
+end
+
+# Kernel for merging CSR matrix with diagonal (UniformScaling addition)
+# Copies entries from A and inserts/adds λ to diagonal entries
+@kernel inbounds = true function kernel_add_uniformscaling_csr!(
+        new_colval,
+        new_nzval,
+        @Const(new_rowptr),
+        @Const(old_rowptr),
+        @Const(old_colval),
+        @Const(old_nzval),
+        @Const(λ),
+    )
+    row = @index(Global)
+    write_idx = new_rowptr[row]
+    diag_written = false
+
+    for j in old_rowptr[row]:(old_rowptr[row + 1] - 1)
+        col = old_colval[j]
+
+        # Insert diagonal before this entry if needed
+        if !diag_written && col > row
+            new_colval[write_idx] = row
+            new_nzval[write_idx] = λ
+            write_idx += 1
+            diag_written = true
+        end
+
+        # Copy this entry, adding λ if it's the diagonal
+        new_colval[write_idx] = col
+        if col == row
+            new_nzval[write_idx] = old_nzval[j] + λ
+            diag_written = true
+        else
+            new_nzval[write_idx] = old_nzval[j]
+        end
+        write_idx += 1
+    end
+
+    # If diagonal not yet written (all entries were before the diagonal position,
+    # or row had no entries), write it at the end
+    if !diag_written
+        new_colval[write_idx] = row
+        new_nzval[write_idx] = λ
+    end
+end
