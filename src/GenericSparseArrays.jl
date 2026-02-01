@@ -3,7 +3,7 @@ module GenericSparseArrays
 using LinearAlgebra
 import LinearAlgebra: wrap, copymutable_oftype, __normalize!, kron, Diagonal, issymmetric, ishermitian
 using SparseArrays
-import SparseArrays: SparseVector, SparseMatrixCSC
+import SparseArrays: SparseVector, SparseMatrixCSC, dropzeros, dropzeros!
 import SparseArrays: getcolptr, getrowval, getnzval, nonzeroinds
 import SparseArrays: _show_with_braille_patterns
 

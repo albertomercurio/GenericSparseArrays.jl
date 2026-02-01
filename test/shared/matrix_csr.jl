@@ -326,6 +326,11 @@ function shared_test_linearalgebra_matrix_csr(
                 @test collect(result) ≈ Matrix(expected)
                 @test result isa GenericSparseMatrixCSR
 
+                # Test op_A(A) - op_A(A) drops zeros (should have zero stored elements)
+                result_sub = op_A(dA) - op_A(dA)
+                @test nnz(result_sub) == 0
+                @test collect(result_sub) ≈ zeros(T, size(op_A(A))...)
+
                 # Additional tests only for identity + identity
                 if op_A === identity && op_B === identity
                     # Test with overlapping entries
