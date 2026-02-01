@@ -32,9 +32,8 @@ function LinearAlgebra.lmul!(x::Number, A::AbstractGenericSparseArray)
     return A
 end
 
-function LinearAlgebra.rdiv!(A::AbstractGenericSparseArray, x::Number)
-    nzvals = nonzeros(A)
-    nzvals ./= x
+function LinearAlgebra.rdiv!(A::AbstractGenericSparseArray{Tv}, x::Number) where {Tv}
+    rmul!(A, inv(Tv(x)))
     return A
 end
 

@@ -380,8 +380,7 @@ function Base.:+(A::GenericSparseMatrixCOO, B::GenericSparseMatrixCOO)
     )
 
     C = GenericSparseMatrixCOO(m, n, rowind_C, colind_C, nzval_C)
-    dropzeros!(C)
-    return C
+    return dropzeros(C)
 end
 
 # Addition with transpose/adjoint support
@@ -499,8 +498,7 @@ for (wrapa, transa, conja, unwrapa, whereT1) in trans_adj_wrappers(:GenericSpars
             )
 
             C = GenericSparseMatrixCOO(m, n, rowind_C, colind_C, nzval_C)
-            dropzeros!(C)
-            return C
+            return dropzeros(C)
         end
 
         @eval function Base.:-(A::$TypeA, B::$TypeB) where {$(whereT1(:T1)), $(whereT2(:T2))}
@@ -805,6 +803,13 @@ function SparseArrays.dropzeros!(A::GenericSparseMatrixCOO)
 
     if total_nnz == length(nzval)
         # No zeros to drop
+        return A
+    end
+
+    if total_nnz == 0
+        # All elements are zeros - some GPU backends (e.g., Metal) don't support
+        # resize to 0. Keep the stored zeros; users can use dropzeros() (non-mutating)
+        # which returns a new matrix with properly empty arrays.
         return A
     end
 
