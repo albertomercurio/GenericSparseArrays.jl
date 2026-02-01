@@ -85,18 +85,6 @@ function Base.zero(A::GenericSparseMatrixCSR)
     return GenericSparseMatrixCSR(A.m, A.n, rowptr, rowval, nzval)
 end
 
-function Base.:(*)(α::Number, A::GenericSparseMatrixCSR)
-    return GenericSparseMatrixCSR(
-        A.m,
-        A.n,
-        copy(getrowptr(A)),
-        copy(colvals(A)),
-        α .* nonzeros(A),
-    )
-end
-Base.:(*)(A::GenericSparseMatrixCSR, α::Number) = α * A
-Base.:(/)(A::GenericSparseMatrixCSR, α::Number) = (1 / α) * A
-
 function Base.:-(A::GenericSparseMatrixCSR)
     return GenericSparseMatrixCSR(A.m, A.n, copy(A.rowptr), copy(A.colval), -A.nzval)
 end

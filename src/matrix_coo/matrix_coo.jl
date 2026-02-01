@@ -104,18 +104,6 @@ function Base.zero(A::GenericSparseMatrixCOO)
     return GenericSparseMatrixCOO(A.m, A.n, rowind, colind, nzval)
 end
 
-function Base.:(*)(α::Number, A::GenericSparseMatrixCOO)
-    return GenericSparseMatrixCOO(
-        A.m,
-        A.n,
-        copy(getrowind(A)),
-        copy(getcolind(A)),
-        α .* nonzeros(A),
-    )
-end
-Base.:(*)(A::GenericSparseMatrixCOO, α::Number) = α * A
-Base.:(/)(A::GenericSparseMatrixCOO, α::Number) = (1 / α) * A
-
 function Base.:-(A::GenericSparseMatrixCOO)
     return GenericSparseMatrixCOO(A.m, A.n, copy(A.rowind), copy(A.colind), -A.nzval)
 end
