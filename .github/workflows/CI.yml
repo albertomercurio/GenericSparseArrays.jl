@@ -59,7 +59,7 @@ jobs:
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.node.arch }}
-      - uses: julia-actions/cache@v2
+      - uses: julia-actions/cache@v3
         if: matrix.group != 'CUDA' # Don't cache on self-hosted runners
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
@@ -84,7 +84,7 @@ jobs:
       - uses: julia-actions/setup-julia@v2
         with:
           version: '1'
-      - uses: julia-actions/cache@v2
+      - uses: julia-actions/cache@v3
       - name: Configure doc environment
         shell: julia --project=docs --color=yes {0}
         run: |
