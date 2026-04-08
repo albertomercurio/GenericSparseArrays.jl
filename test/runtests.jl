@@ -17,6 +17,7 @@ include(joinpath(@__DIR__, "shared", "vector.jl"))
 include(joinpath(@__DIR__, "shared", "matrix_csc.jl"))
 include(joinpath(@__DIR__, "shared", "matrix_csr.jl"))
 include(joinpath(@__DIR__, "shared", "matrix_coo.jl"))
+include(joinpath(@__DIR__, "shared", "matrix_diag.jl"))
 include(joinpath(@__DIR__, "shared", "conversions.jl"))
 
 const GROUP_LIST = ("All", "Code-Quality", "CPU", "CUDA", "Metal", "Reactant")
@@ -53,6 +54,13 @@ if GROUP in ("All", "CPU")
                     (ComplexF32, ComplexF64),
                 )
                 shared_test_matrix_coo(
+                    func,
+                    name,
+                    (Int32, Int64),
+                    (Float32, Float64),
+                    (ComplexF32, ComplexF64),
+                )
+                shared_test_matrix_diag(
                     func,
                     name,
                     (Int32, Int64),

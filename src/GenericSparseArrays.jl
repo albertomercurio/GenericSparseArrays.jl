@@ -30,7 +30,8 @@ export AbstractGenericSparseArray,
     AbstractGenericSparseVector, AbstractGenericSparseMatrix, AbstractGenericSparseVecOrMat
 
 export GenericSparseVector,
-    GenericSparseMatrixCSC, GenericSparseMatrixCSR, GenericSparseMatrixCOO
+    GenericSparseMatrixCSC, GenericSparseMatrixCSR, GenericSparseMatrixCOO,
+    GenericSparseDiagMatrix
 
 include("core.jl")
 include("helpers.jl")
@@ -44,6 +45,9 @@ include("matrix_csr/matrix_csr.jl")
 
 include("matrix_coo/matrix_coo_kernels.jl")
 include("matrix_coo/matrix_coo.jl")
+
+include("matrix_diag/matrix_diag_kernels.jl")
+include("matrix_diag/matrix_diag.jl")
 
 include("conversions/conversion_kernels.jl")
 include("conversions/conversions.jl")
