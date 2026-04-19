@@ -55,3 +55,30 @@ end
     i = @index(Global)
     keys[i] = rowind[i] * n + colind[i]
 end
+
+# Kernel for converting DIA to COO format
+# Each thread handles one diagonal
+@kernel inbounds = true function kernel_dia_to_coo!(
+        rowind,
+        colind,
+        nzval_out,
+        @Const(offsets),
+        @Const(diagptr),
+        @Const(data),
+        @Const(coo_ptr),  # prefix sum of diagonal lengths, for output offset
+        @Const(m),
+    )
+    d = @index(Global)
+
+    k = offsets[d]
+    row_start = max(1, 1 - k)
+    dlen = diagptr[d + 1] - diagptr[d]
+    out_start = coo_ptr[d]
+
+    for idx in 0:(dlen - 1)
+        i = row_start + idx
+        rowind[out_start + idx] = i
+        colind[out_start + idx] = i + k
+        nzval_out[out_start + idx] = data[diagptr[d] + idx]
+    end
+end
